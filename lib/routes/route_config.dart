@@ -1,11 +1,10 @@
-
 import 'package:go_router/go_router.dart';
+import 'package:trackstatus_flutter/pages/service_page.dart';
 import '../pages/home_page.dart';
 import '../pages/login_page.dart';
 import 'app_route.dart';
 import '../services/auth_service.dart';
 import '../pages/attend_history_page.dart';
-
 
 final GoRouter router = GoRouter(
   refreshListenable: authService,
@@ -13,8 +12,6 @@ final GoRouter router = GoRouter(
   redirect: (context, state) {
     final loggedIn = authService.currentUser != null;
     final goingToLogin = state.uri.path == AppRoutes.login;
-
-    
 
     if (!loggedIn && !goingToLogin) return AppRoutes.login;
     if (loggedIn && goingToLogin) return AppRoutes.home;
@@ -26,12 +23,20 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const LoginPage(),
     ),
     GoRoute(
+      path: '/',
+      builder: (context, state) => const HomePage(),
+    ),
+    GoRoute(
       path: AppRoutes.home,
       builder: (context, state) => const HomePage(),
     ),
     GoRoute(
-      path: AppRoutes.attendHistory,
+      path: AppRoutes.attendHistory, //'/attendHistory'
       builder: (context, state) => const AttendHistoryPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.service,
+      builder: (context, state) => const ServicePage(),
     ),
   ],
 );

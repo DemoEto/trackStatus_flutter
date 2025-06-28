@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:trackstatus_flutter/routes/app_route.dart';
 
 import '../services/auth_service.dart';
-import '../routes/app_route.dart';
+import '../routes/route_config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,6 +15,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final User? user = AuthService().currentUser;
+  int _selectedIndex = 0;
 
   Future<void> signOut() async {
     await AuthService().signOut();
@@ -100,6 +101,41 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buttomNavigation() {
+    return NavigationBar(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: (index) {
+        if (index == 2) {
+          // สมมติ Scan เป็นปุ่มที่ 3
+        }
+        if (index == 4) {
+        } else {
+          setState(() {
+            _selectedIndex = index;
+          });
+        }
+      },
+      indicatorColor: Colors.amber,
+      destinations: const <Widget>[
+        NavigationDestination(
+          selectedIcon: Icon(Icons.home),
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
+        NavigationDestination(
+          icon: Badge(child: Icon(Icons.notifications_sharp)),
+          label: 'Notifications',
+        ),
+        NavigationDestination(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
+        NavigationDestination(
+          icon: Badge(label: Text('2'), child: Icon(Icons.messenger_sharp)),
+          label: 'Messages',
+        ),
+        NavigationDestination(icon: Icon(Icons.person), label: 'Service'),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,6 +151,7 @@ class _HomePageState extends State<HomePage> {
           children: [_userUid(), _signOutButton()],
         ),
       ),
+      bottomNavigationBar: _buttomNavigation(),
     );
   }
 }

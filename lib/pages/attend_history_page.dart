@@ -12,7 +12,7 @@ class _AttendHistoryPageState extends State<AttendHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-
+        title: Text('Attendent History Student'),
       ),
       body: Container(
         height: double.infinity,
