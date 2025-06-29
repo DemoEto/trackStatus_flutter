@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:trackstatus_flutter/routes/app_route.dart';
 
 import '../services/auth_service.dart';
-import '../routes/route_config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -109,13 +108,14 @@ class _HomePageState extends State<HomePage> {
           // สมมติ Scan เป็นปุ่มที่ 3
         }
         if (index == 4) {
+          context.push(AppRoutes.service);
         } else {
           setState(() {
             _selectedIndex = index;
           });
         }
       },
-      indicatorColor: Colors.amber,
+      indicatorColor: const Color.fromARGB(255,197, 211, 232),
       destinations: const <Widget>[
         NavigationDestination(
           selectedIcon: Icon(Icons.home),
