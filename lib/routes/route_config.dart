@@ -1,10 +1,13 @@
 import 'package:go_router/go_router.dart';
 import 'package:trackstatus_flutter/pages/service_page.dart';
+
+import 'app_route.dart';
+
 import '../pages/home_page.dart';
 import '../pages/login_page.dart';
-import 'app_route.dart';
 import '../services/auth_service.dart';
 import '../pages/attend_history_page.dart';
+import '../pages/qr_checkin_page.dart';
 
 final GoRouter router = GoRouter(
   refreshListenable: authService,
@@ -37,6 +40,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: AppRoutes.service,
       builder: (context, state) => const ServicePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.qrCheckin,
+      builder: (context, state) => const QrCheckinPage(),
     ),
   ],
 );

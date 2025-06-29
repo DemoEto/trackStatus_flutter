@@ -43,6 +43,12 @@ class ServicePage extends StatelessWidget {
             title: 'My Vehicle',
             routeName: AppRoutes.home,
           ),
+          _buildCard(
+            context: context,
+            icon: Icons.qr_code,
+            title: 'QR & Check-In',
+            routeName: AppRoutes.qrCheckin,
+          ),
         ],
       ),
     );

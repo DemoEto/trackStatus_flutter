@@ -3,4 +3,6 @@ class AppRoutes {
   static const String home = '/home';
   static const String attendHistory = '/attenHistory';
   static const String service = '/service';
+  static const String qrCheckin = '/qrCheckin';
+
 }

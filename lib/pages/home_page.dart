@@ -46,7 +46,7 @@ class _HomePageState extends State<HomePage> {
           ),
           ListTile(
             leading: const Icon(Icons.qr_code),
-            title: const Text('ข้อมูลการมาเรียน'),
+            title: const Text('ประวัติการมาเรียน'),
             onTap: () {
               context.push(AppRoutes.attendHistory);
             },
