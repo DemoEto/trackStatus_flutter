@@ -11,10 +11,9 @@ class QrCheckinPage extends StatefulWidget {
 }
 
 class _QrCheckinPageState extends State<QrCheckinPage> {
-  Widget _stuList({
-    required String title,
-    required String subtitle
-  }) {
+  String? selectedStatus;
+
+  Widget _stuList({required String title, required String subtitle}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 5.0),
       child: Container(
@@ -26,12 +25,47 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
             ),
           ),
         ),
-        child: ListTile(
-          title: Text(title),
-          subtitle: Text(subtitle),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // แสดงรหัสนักเรียน + ชื่อ
+            Text(
+              '${'665433210004-8'} - ${'MR.Kanatip'}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
 
+            // แถวเลือกสถานะมาเรียน
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildRadio("present", "มา"),
+                _buildRadio("late", "สาย"),
+                _buildRadio("leave", "ลา"),
+                _buildRadio("absent", "ขาด"),
+              ],
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  // ฟังก์ชันสร้าง radio ปุ่ม
+  Widget _buildRadio(String value, String label) {
+    return Row(
+      children: [
+        Radio<String>(
+          value: value,
+          groupValue: selectedStatus,
+          onChanged: (newValue) {
+            setState(() {
+              selectedStatus = newValue;
+            });
+          },
+        ),
+        Text(label),
+      ],
     );
   }
 
@@ -39,14 +73,16 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('QR & Check-In')),
-      body: ListView(
-        children: [
-          _stuList(
-            title: '66543210004-8',
-            subtitle: 'MR.Kanatip Wongkiti',
+      body: 
+          ListView(
+            children: [
+              _stuList(
+                title: '66543210004-8', 
+                subtitle: 'MR.Kanatip Wongkiti'
+              ),
+            ],
           ),
-        ],
-      ),
+
     );
   }
 }
