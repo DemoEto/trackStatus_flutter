@@ -35,7 +35,7 @@ class ServicePage extends StatelessWidget {
             context: context,
             icon: FontAwesomeIcons.addressBook,
             title: 'Academic Profiles',
-            routeName: AppRoutes.home,
+            routeName: AppRoutes.academicProfile,
           ),
           _buildCard(
             context: context,

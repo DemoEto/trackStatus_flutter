@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:trackstatus_flutter/pages/academic_profile_page.dart';
 import 'package:trackstatus_flutter/pages/service_page.dart';
 
 import 'app_route.dart';
@@ -44,6 +45,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: AppRoutes.qrCheckin,
       builder: (context, state) => const QrCheckinPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.academicProfile,
+      builder: (context, state) => const AcademicProfilePage(),
     ),
   ],
 );
