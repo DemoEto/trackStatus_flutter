@@ -66,6 +66,8 @@ class _LoginPageState extends State<LoginPage> {
     }
     try {
       await AuthService().register(
+        text: _controllerFname,
+        text: _controllerLname,
         email: _controllerEmail.text,
         password: _controllerPassword.text,
       );
