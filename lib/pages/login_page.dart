@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
@@ -16,13 +18,16 @@ class _LoginPageState extends State<LoginPage> {
 
   final TextEditingController _controllerEmail = TextEditingController();
   final TextEditingController _controllerPassword = TextEditingController();
-  final TextEditingController _controllerConfirmPassword = TextEditingController();
+  final TextEditingController _controllerConfirmPassword =
+      TextEditingController();
+  final TextEditingController _controllerName = TextEditingController();
 
   @override
   void dispose() {
     _controllerEmail.dispose();
     _controllerPassword.dispose();
     _controllerConfirmPassword.dispose();
+    _controllerName.dispose();
     super.dispose();
   }
 
@@ -46,7 +51,9 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.pushReplacementNamed(context, '/parentAttendanceView');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('ไม่สามารถระบุประเภทผู้ใช้จาก UID ได้')),
+            const SnackBar(
+              content: Text('ไม่สามารถระบุประเภทผู้ใช้จาก UID ได้'),
+            ),
           );
         }
       }
@@ -69,12 +76,25 @@ class _LoginPageState extends State<LoginPage> {
         email: _controllerEmail.text,
         password: _controllerPassword.text,
       );
+      // ✅ บันทึกชื่อผู้ใช้ใน Firestore
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({ 
+          'uid': user.uid,
+          'email': user.email,
+          'name': _controllerName.text,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
       setState(() {
         isLogin = true;
         errorMessage = 'Register success! Please login.';
       });
+
       _controllerPassword.clear();
       _controllerConfirmPassword.clear();
+      _controllerName.clear();
+
     } on FirebaseAuthException catch (e) {
       setState(() {
         errorMessage = e.message;
@@ -100,10 +120,14 @@ class _LoginPageState extends State<LoginPage> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
+          ),
         ),
         onPressed: () {
-          isLogin ? signInWithEmailAndPassword() : createUserWithEmailAndPassword();
+          isLogin
+              ? signInWithEmailAndPassword()
+              : createUserWithEmailAndPassword();
         },
         child: Text(
           isLogin ? 'Login' : 'Register',
@@ -170,7 +194,11 @@ class _LoginPageState extends State<LoginPage> {
           onPressed: () {
             // TODO: implement Facebook login
           },
-          icon: const Icon(FontAwesomeIcons.facebook, color: Colors.blue, size: 30),
+          icon: const Icon(
+            FontAwesomeIcons.facebook,
+            color: Colors.blue,
+            size: 30,
+          ),
         ),
         IconButton(
           onPressed: () async {
@@ -182,19 +210,31 @@ class _LoginPageState extends State<LoginPage> {
               });
             }
           },
-          icon: const Icon(FontAwesomeIcons.google, color: Colors.redAccent, size: 30),
+          icon: const Icon(
+            FontAwesomeIcons.google,
+            color: Colors.redAccent,
+            size: 30,
+          ),
         ),
         IconButton(
           onPressed: () {
             // TODO: implement Twitter login
           },
-          icon: const Icon(FontAwesomeIcons.twitter, color: Colors.orangeAccent, size: 30),
+          icon: const Icon(
+            FontAwesomeIcons.twitter,
+            color: Colors.orangeAccent,
+            size: 30,
+          ),
         ),
         IconButton(
           onPressed: () {
             // TODO: implement LinkedIn login
           },
-          icon: const Icon(FontAwesomeIcons.linkedinIn, color: Colors.green, size: 30),
+          icon: const Icon(
+            FontAwesomeIcons.linkedinIn,
+            color: Colors.green,
+            size: 30,
+          ),
         ),
       ],
     );
@@ -211,7 +251,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Container(
             width: screenWidth,
             decoration: const BoxDecoration(
-              color: Color.fromARGB(255, 197, 211, 232)
+              color: Color.fromARGB(255, 197, 211, 232),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -255,18 +295,39 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 20),
-                        _entryField(context, "Email Address", _controllerEmail,
-                            icon: FontAwesomeIcons.envelope),
-                        const SizedBox(height: 10),
-                        _entryField(context, "Password", _controllerPassword,
-                            isPassword: true, icon: FontAwesomeIcons.eyeSlash),
+                        const SizedBox(height: 5),
+                        _entryField(
+                          context,
+                          "Email Address",
+                          _controllerEmail,
+                          icon: FontAwesomeIcons.envelope,
+                        ),
+                        const SizedBox(height: 5),
+                        _entryField(
+                          context,
+                          "Password",
+                          _controllerPassword,
+                          isPassword: true,
+                          icon: FontAwesomeIcons.eyeSlash,
+                        ),
                         if (!isLogin)
                           Column(
                             children: [
-                              const SizedBox(height: 10),
-                              _entryField(context, "Confirm Password", _controllerConfirmPassword,
-                                  isPassword: true, icon: FontAwesomeIcons.eye),
+                              const SizedBox(height: 5),
+                              _entryField(
+                                context,
+                                "Confirm Password",
+                                _controllerConfirmPassword,
+                                isPassword: true,
+                                icon: FontAwesomeIcons.eye,
+                              ),
+                              const SizedBox(height: 5),
+                              _entryField(
+                                context,
+                                "First - Last name",
+                                _controllerName,
+                                icon: FontAwesomeIcons.user,
+                              ),
                             ],
                           ),
                         Padding(
@@ -281,7 +342,10 @@ class _LoginPageState extends State<LoginPage> {
                                   },
                                   child: const Text(
                                     "Forget Password",
-                                    style: TextStyle(color: Colors.deepOrange, fontSize: 14),
+                                    style: TextStyle(
+                                      color: Colors.deepOrange,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
                             ],
@@ -293,7 +357,10 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 10),
                         const Text(
                           "Or Login using Social Media Account",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 10),

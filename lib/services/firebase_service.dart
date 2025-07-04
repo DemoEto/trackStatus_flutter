@@ -3,9 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 void createUser() async{
   
-  final usersRef = FirebaseFirestore.instance.collection('users');
+  final usersData = FirebaseFirestore.instance.collection('users');
   // 1. ดึง users ที่ขึ้นต้นด้วย "std" แล้วเรียงลำดับตาม docId
-  final querySnapshot = await usersRef
+  final querySnapshot = await usersData
       .where(FieldPath.documentId, isGreaterThanOrEqualTo: 'std')
       .where(FieldPath.documentId, isLessThanOrEqualTo: 'std\uf8ff')
       .orderBy(FieldPath.documentId, descending: true)
@@ -23,7 +23,7 @@ void createUser() async{
   }
 
   // 2. เพิ่มผู้ใช้ด้วย ID ที่ generate
-  await usersRef.doc(newId).set({
+  await usersData.doc(newId).set({
     'name': 'John',
     'email': 'john@example.com',
     'age': 25,
