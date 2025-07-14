@@ -26,7 +26,7 @@ void createUser() async{
   await usersData.doc(newId).set({
     'name': 'John',
     'email': 'john@example.com',
-    'age': 25,
+    
   });
 }
 

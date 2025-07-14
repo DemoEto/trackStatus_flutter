@@ -22,14 +22,22 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> register({
-    required String email,
-    required String password,
-  }) async {
-    await _firebaseAuth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-  }
+  required String email,
+  required String password,
+  required String displayName,
+}) async {
+  // 1. สร้างบัญชี
+  UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+    email: email,
+    password: password,
+  );
+
+  // 2. อัปเดตชื่อ
+  await userCredential.user!.updateDisplayName(displayName);
+
+  // 3. โหลดข้อมูลใหม่
+  await userCredential.user!.reload();
+}
 
   Future<void> signOut() async {
     await _firebaseAuth.signOut();

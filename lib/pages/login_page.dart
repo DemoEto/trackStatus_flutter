@@ -75,21 +75,9 @@ class _LoginPageState extends State<LoginPage> {
       await AuthService().register(
         email: _controllerEmail.text,
         password: _controllerPassword.text,
+        displayName: _controllerName.text,
       );
-      // ✅ บันทึกชื่อผู้ใช้ใน Firestore
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({ 
-          'uid': user.uid,
-          'email': user.email,
-          'name': _controllerName.text,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-      setState(() {
-        isLogin = true;
-        errorMessage = 'Register success! Please login.';
-      });
+
 
       _controllerPassword.clear();
       _controllerConfirmPassword.clear();
@@ -132,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
         child: Text(
           isLogin ? 'Login' : 'Register',
           style: const TextStyle(
-            color: Colors.white,
+            color: Colors.black54,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -343,7 +331,7 @@ class _LoginPageState extends State<LoginPage> {
                                   child: const Text(
                                     "Forget Password",
                                     style: TextStyle(
-                                      color: Colors.deepOrange,
+                                      color: Colors.grey,
                                       fontSize: 14,
                                     ),
                                   ),
