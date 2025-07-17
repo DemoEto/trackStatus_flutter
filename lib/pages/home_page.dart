@@ -40,56 +40,20 @@ class _HomePageState extends State<HomePage> {
           const DrawerHeader(
             decoration: BoxDecoration(color: Colors.blue),
             child: Text(
-              'เมนู',
+              'Setting',
               style: TextStyle(color: Colors.white, fontSize: 24),
             ),
           ),
           ListTile(
             leading: const Icon(Icons.qr_code),
-            title: const Text('ประวัติการมาเรียน'),
+            title: const Text('Scan History'),
             onTap: () {
               context.push(AppRoutes.attendHistory);
             },
           ),
           ListTile(
-            leading: const Icon(Icons.calendar_month),
-            title: const Text('ข้อมูลการมาเรียนรายเดือน'),
-            onTap: () {
-              Navigator.pop(context); // ปิด Drawer
-              Navigator.pushNamed(
-                context,
-                '/attendance-report',
-              ); // ชื่อ route ที่จะไป
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.car_crash),
-            title: const Text('ติดตามสถานะรถโรงเรียน'),
-            onTap: () {
-              Navigator.pop(context); // ปิด Drawer
-              Navigator.pushNamed(context, '/profile'); // ไปยังหน้าโปรไฟล์
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.dashboard_customize_rounded),
-            title: const Text('ระบบส่งการบ้านและสั่งงานนักเรียน'),
-            onTap: () {
-              Navigator.pop(context); // ปิด Drawer
-              Navigator.pushNamed(context, '/profile'); // ไปยังหน้าโปรไฟล์
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('ตั้งค่า'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/settings');
-            },
-          ),
-          ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('ออกจากระบบ'),
+            title: const Text('Sign out'),
             onTap: () async {
               await AuthService().signOut(); // logout
               Navigator.of(context).pushReplacementNamed('/login');
