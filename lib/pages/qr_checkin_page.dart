@@ -98,7 +98,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Expanded(flex: 3, child: SizedBox.shrink()), // พื้นที่สำหรับชื่อ
+                const Expanded(flex: 4, child: SizedBox.shrink()), // พื้นที่สำหรับชื่อ
                 Expanded(child: Center(child: Text("มา", style: TextStyle(fontWeight: FontWeight.bold)))),
                 Expanded(child: Center(child: Text("ลา", style: TextStyle(fontWeight: FontWeight.bold)))),
                 Expanded(child: Center(child: Text("ขาด", style: TextStyle(fontWeight: FontWeight.bold)))),

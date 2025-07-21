@@ -78,7 +78,6 @@ class _LoginPageState extends State<LoginPage> {
         displayName: _controllerName.text,
       );
 
-
       _controllerPassword.clear();
       _controllerConfirmPassword.clear();
       _controllerName.clear();

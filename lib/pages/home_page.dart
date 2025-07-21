@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:trackstatus_flutter/routes/app_route.dart';
 
@@ -13,7 +14,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final User? user = AuthService().currentUser;
+
+  Future<User?> _reloadUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    await user?.reload(); // โหลดข้อมูลล่าสุด
+    return FirebaseAuth.instance.currentUser; // รีเทิร์น user ที่ reload แล้ว
+  }
+  
   int _selectedIndex = 0;
 
   Future<void> signOut() async {
@@ -25,7 +32,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _userUid() {
-    return Text(user?.email ?? 'User email');
+    // ดึง AuthService จาก Provider
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.currentUser;
+    print('🔄 displayName = ${user?.displayName}');
+    return Column(
+      children: [
+        Text(user?.email ?? 'User email'),
+        Text(user?.displayName ?? 'Name')
+      ],
+    );
   }
 
   Widget _signOutButton() {
@@ -105,6 +121,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: _title()),
       drawer: _drawermenu(),
+      
       body: Container(
         height: double.infinity,
         width: double.infinity,

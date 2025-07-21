@@ -14,7 +14,7 @@ class AuthService extends ChangeNotifier {
 
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
-  Future<void> signIn({required String email, required String password}) async {
+  Future<void> signIn({required String email, password}) async {
     await _firebaseAuth.signInWithEmailAndPassword(
       email: email,
       password: password,
@@ -26,17 +26,23 @@ class AuthService extends ChangeNotifier {
   required String password,
   required String displayName,
 }) async {
-  // 1. สร้างบัญชี
-  UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+  // สมัคร
+  await _firebaseAuth.createUserWithEmailAndPassword(
     email: email,
     password: password,
   );
 
-  // 2. อัปเดตชื่อ
-  await userCredential.user!.updateDisplayName(displayName);
+  // อัปเดต displayName
+  final user = currentUser;
+  await user?.updateDisplayName(displayName);
 
-  // 3. โหลดข้อมูลใหม่
-  await userCredential.user!.reload();
+  // โหลดใหม่และอัปเดต reference
+  await user?.reload();
+  // 🔥 บังคับโหลด user ใหม่เข้ามา
+ 
+  print('🔄 UserName = $currentUser');
+  // แจ้งให้ และ GoRouter รู้
+  notifyListeners();
 }
 
   Future<void> signOut() async {
