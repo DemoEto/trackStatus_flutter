@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
+// import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:trackstatus_flutter/routes/app_route.dart';
 
@@ -32,16 +32,25 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _userUid() {
-    // ดึง AuthService จาก Provider
-    final authService = Provider.of<AuthService>(context);
-    final user = authService.currentUser;
-    print('🔄 displayName = ${user?.displayName}');
-    return Column(
-      children: [
-        Text(user?.email ?? 'User email'),
-        Text(user?.displayName ?? 'Name')
-      ],
-    );
+    return FutureBuilder(
+    future: _reloadUser(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const CircularProgressIndicator();
+      }
+
+      final user = snapshot.data;
+      final email = user?.email ?? 'ไม่พบอีเมล';
+      final name = user?.displayName ?? 'ไม่มีชื่อ';
+
+      return Column(
+        children: [
+          Text(email),
+          Text(name),
+        ],
+      );
+    },
+  );
   }
 
   Widget _signOutButton() {

@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart';
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  User? get currentUser => _firebaseAuth.currentUser;
+  User? get currentUser =>
+      _firebaseAuth.currentUser; // !-- currentUser = null for sure
 
   AuthService() {
     _firebaseAuth.authStateChanges().listen((_) {
@@ -22,31 +23,37 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> register({
-  required String email,
-  required String password,
-  required String displayName,
-}) async {
-  // สมัคร
-  await _firebaseAuth.createUserWithEmailAndPassword(
-    email: email,
-    password: password,
-  );
+    required String email,
+    required String password,
+    required String displayName,
+  }) async {
+    try {
+      // สมัคร
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+      // อัปเดต displayName
+      await userCredential.user?.updateDisplayName(displayName);
 
-  // อัปเดต displayName
-  final user = currentUser;
-  await user?.updateDisplayName(displayName);
+      // โหลดใหม่และอัปเดต reference
+      await userCredential.user?.reload();
+      // 🔥 บังคับโหลด user ใหม่เข้ามา
+      User? updatedUser = FirebaseAuth.instance.currentUser;
+      // แจ้งให้ทุกอย่างรู้
+      notifyListeners();
 
-  // โหลดใหม่และอัปเดต reference
-  await user?.reload();
-  // 🔥 บังคับโหลด user ใหม่เข้ามา
- 
-  print('🔄 UserName = $currentUser');
-  // แจ้งให้ และ GoRouter รู้
-  notifyListeners();
-}
+      print('✅ Registered user: ${updatedUser?.displayName}');
+    } catch (e) {
+      print('\n❌ Register Error: ${e.toString()}\n');
+    }
+  }
 
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
+  }
+
+  Future<void> reloadUser() async {
+    await _firebaseAuth.currentUser?.reload();
+    notifyListeners(); // จะทำให้ GoRouter รีโหลดด้วย
   }
 }
 

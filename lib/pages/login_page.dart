@@ -77,11 +77,11 @@ class _LoginPageState extends State<LoginPage> {
         password: _controllerPassword.text,
         displayName: _controllerName.text,
       );
-
-      _controllerPassword.clear();
-      _controllerConfirmPassword.clear();
-      _controllerName.clear();
-
+      if (mounted) {
+        _controllerPassword.clear();
+        _controllerConfirmPassword.clear();
+        _controllerName.clear();
+      }
     } on FirebaseAuthException catch (e) {
       setState(() {
         errorMessage = e.message;
