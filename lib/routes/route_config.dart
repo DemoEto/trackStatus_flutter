@@ -18,7 +18,7 @@ final GoRouter router = GoRouter(
     final goingToLogin = state.uri.path == AppRoutes.login;
 
     if (!loggedIn && !goingToLogin) return AppRoutes.login;
-    if (context.mounted && loggedIn && goingToLogin) return AppRoutes.homeAppRoutes.home;
+    if (context.mounted && loggedIn && goingToLogin) return AppRoutes.home;
     return null;
   },
   routes: [
