@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 // import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/student_model.dart';
@@ -11,7 +13,6 @@ class QrCheckinPage extends StatefulWidget {
 }
 
 class _QrCheckinPageState extends State<QrCheckinPage> {
-  
   final List<Student> students = [
     Student(id: '66543210004-8', name: 'MR.Kanatip Wongkiti'),
     Student(id: '66543210005-9', name: 'MISS.Supannee Yindeeta'),
@@ -32,27 +33,32 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
       ),
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15.0,vertical: 10.0), // PADDING นี้
+        padding: const EdgeInsets.symmetric(
+          horizontal: 15.0,
+          vertical: 10.0,
+        ), // PADDING นี้
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded( // ส่วนของ Text
+            Expanded(
+              // ส่วนของ Text
               flex: 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     student.id,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  Text(
-                    student.name,
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  Text(student.name, style: const TextStyle(fontSize: 16)),
                 ],
               ),
             ),
-            Expanded( // ส่วนของ Radio buttons
+            Expanded(
+              // ส่วนของ Radio buttons
               flex: 2,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -68,21 +74,52 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
       ),
     );
   }
+
   // ฟังก์ชันสร้าง radio ปุ่มสำหรับนักเรียนแต่ละคน
   Widget _buildRadioForStudent(Student student, String value) {
-    return SizedBox( // ใช้ Expanded เพื่อกระจายพื้นที่ให้เท่ากัน
-        width:45,
-        height: 45,
-        child: 
-          Radio<String>(
-            value: value,
-            groupValue: student.status, // ใช้สถานะของนักเรียนแต่ละคน
-            onChanged: (newValue) {
-              setState(() {
-                student.status = newValue;
-              });
-            },
+    return SizedBox(
+      // ใช้ Expanded เพื่อกระจายพื้นที่ให้เท่ากัน
+      width: 45,
+      height: 45,
+      child: Radio<String>(
+        value: value,
+        groupValue: student.status, // ใช้สถานะของนักเรียนแต่ละคน
+        onChanged: (newValue) {
+          setState(() {
+            student.status = newValue;
+          });
+        },
+      ),
+    );
+  }
+
+  //TODO QR Generate Section
+  String? qrData = 'AppRoutes.qrCheckin';
+
+  Widget _qrGenerator() {
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          PrettyQrView.data(
+            data: qrData!,
+            errorCorrectLevel: QrErrorCorrectLevel.H,
+            decoration: const PrettyQrDecoration(
+              shape: PrettyQrSmoothSymbol(),
+              image: PrettyQrDecorationImage(
+                image: AssetImage('assets/images/login2.png'),
+                position: PrettyQrDecorationImagePosition.embedded,
+                padding: EdgeInsets.all(25),
+              ),
+              quietZone: PrettyQrQuietZone.modules(6),
+            ),
           ),
+          // Text('$qrData')
+        ],
+      ),
     );
   }
 
@@ -92,22 +129,50 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
       appBar: AppBar(title: const Text('QR & Check-In')),
       body: Column(
         children: [
+          // QR section
+          _qrGenerator(),
           // ส่วนหัวของตาราง: มา ลา ขาด
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 10.0), // PADDING นี้
+            padding: const EdgeInsets.symmetric(
+              horizontal: 0.0,
+              vertical: 10.0,
+            ), // PADDING นี้
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Expanded(flex: 4, child: SizedBox.shrink()), // พื้นที่สำหรับชื่อ
-                Expanded(child: Center(child: Text("มา", style: TextStyle(fontWeight: FontWeight.bold)))),
-                Expanded(child: Center(child: Text("ลา", style: TextStyle(fontWeight: FontWeight.bold)))),
-                Expanded(child: Center(child: Text("ขาด", style: TextStyle(fontWeight: FontWeight.bold)))),
+                const Expanded(
+                  flex: 4,
+                  child: SizedBox.shrink(),
+                ), // พื้นที่สำหรับชื่อ
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      "มา",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      "ลา",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      "ขาด",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
           // เส้นแบ่งส่วนหัวและรายการนักเรียน
-          Divider(color: Colors.grey.shade400, height: 1, thickness: 1), 
-          
+          Divider(color: Colors.grey.shade400, height: 1, thickness: 1),
           // รายการนักเรียน
           Expanded(
             child: ListView.builder(
