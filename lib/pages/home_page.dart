@@ -14,13 +14,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-
   Future<User?> _reloadUser() async {
     final user = FirebaseAuth.instance.currentUser;
     await user?.reload(); // โหลดข้อมูลล่าสุด
     return FirebaseAuth.instance.currentUser; // รีเทิร์น user ที่ reload แล้ว
   }
-  
+
   int _selectedIndex = 0;
 
   Future<void> signOut() async {
@@ -33,24 +32,19 @@ class _HomePageState extends State<HomePage> {
 
   Widget _userUid() {
     return FutureBuilder(
-    future: _reloadUser(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const CircularProgressIndicator();
-      }
+      future: _reloadUser(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        }
 
-      final user = snapshot.data;
-      final email = user?.email ?? 'ไม่พบอีเมล';
-      final name = user?.displayName ?? 'ไม่มีชื่อ';
+        final user = snapshot.data;
+        final email = user?.email ?? 'ไม่พบอีเมล';
+        final name = user?.displayName ?? 'ไม่มีชื่อ';
 
-      return Column(
-        children: [
-          Text(email),
-          Text(name),
-        ],
-      );
-    },
-  );
+        return Column(children: [Text(email), Text(name)]);
+      },
+    );
   }
 
   Widget _signOutButton() {
@@ -90,11 +84,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buttomNavigation() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Scaffold(body: Center(child: Text("Not logged in")));
+    }
     return NavigationBar(
       selectedIndex: _selectedIndex,
       onDestinationSelected: (index) {
         if (index == 2) {
-          // สมมติ Scan เป็นปุ่มที่ 3
+          context.go(
+            AppRoutes.qrCheckinID,
+            extra: {
+              'uid': user.uid,
+              'displayName': user.displayName ?? 'No name',
+            },
+          );
         }
         if (index == 4) {
           context.push(AppRoutes.service);
@@ -104,7 +108,7 @@ class _HomePageState extends State<HomePage> {
           });
         }
       },
-      indicatorColor: const Color.fromARGB(255,197, 211, 232),
+      indicatorColor: const Color.fromARGB(255, 197, 211, 232),
       destinations: const <Widget>[
         NavigationDestination(
           selectedIcon: Icon(Icons.home),
@@ -130,7 +134,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: _title()),
       drawer: _drawermenu(),
-      
+
       body: Container(
         height: double.infinity,
         width: double.infinity,

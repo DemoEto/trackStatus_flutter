@@ -1,14 +1,14 @@
 import 'package:go_router/go_router.dart';
-import 'package:trackstatus_flutter/pages/academic_profile_page.dart';
-import 'package:trackstatus_flutter/pages/service_page.dart';
 
 import 'app_route.dart';
 
+import '../pages/academic_profile_page.dart';
+import '../pages/service_page.dart';
 import '../pages/home_page.dart';
 import '../pages/login_page.dart';
-import '../services/auth_service.dart';
 import '../pages/attend_history_page.dart';
 import '../pages/qr_checkin_page.dart';
+import '../services/auth_service.dart';
 
 final GoRouter router = GoRouter(
   refreshListenable: authService,
@@ -26,10 +26,7 @@ final GoRouter router = GoRouter(
       path: AppRoutes.login,
       builder: (context, state) => const LoginPage(),
     ),
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const HomePage(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const HomePage()),
     GoRoute(
       path: AppRoutes.home,
       builder: (context, state) => const HomePage(),
@@ -46,6 +43,7 @@ final GoRouter router = GoRouter(
       path: AppRoutes.qrCheckin,
       builder: (context, state) => const QrCheckinPage(),
     ),
+
     GoRoute(
       path: AppRoutes.academicProfile,
       builder: (context, state) => const AcademicProfilePage(),

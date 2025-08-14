@@ -4,6 +4,7 @@ class AppRoutes {
   static const String attendHistory = '/attenHistory';
   static const String service = '/service';
   static const String qrCheckin = '/qrCheckin';
+  static const String qrCheckinID = '/qrCheckinID';
   static const String academicProfile = '/academicProfile';
   
 }

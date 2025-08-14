@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+// import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/student_model.dart';
@@ -20,8 +21,15 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     Student(id: '66543210007-1', name: 'MISS.Pattama Saelim'),
     // เพิ่มนักเรียนคนอื่นๆ ได้ที่นี่
   ];
+  //-- รับ userId ที่ login มา → ผ่าน route หรือ FirebaseAuth
+  final List<Map<String, String>> _studentBlocks = [];
+  
+  // * ดึงข้อมูลจาก Firestore ด้วย userId
+  // final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+  // final data = userDoc.data(); // จะมี name, studentId เป็นต้น
 
   Widget _buildStudentRow({required Student student}) {
+    
     return Container(
       decoration: BoxDecoration(
         border: Border(
@@ -93,9 +101,9 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     );
   }
 
-  //TODO QR Generate Section
+  //-- QR Generate Section
   String? qrData = 'AppRoutes.qrCheckin';
-
+  
   Widget _qrGenerator() {
     return Padding(
       padding: const EdgeInsets.all(10),
@@ -131,6 +139,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
         children: [
           // QR section
           _qrGenerator(),
+          
           // ส่วนหัวของตาราง: มา ลา ขาด
           Padding(
             padding: const EdgeInsets.symmetric(
@@ -176,7 +185,6 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           // รายการนักเรียน
           Expanded(
             child: ListView.builder(
-              itemCount: students.length,
               itemBuilder: (context, index) {
                 return _buildStudentRow(student: students[index]);
               },
