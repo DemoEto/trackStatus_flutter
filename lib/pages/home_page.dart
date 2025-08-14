@@ -92,12 +92,13 @@ class _HomePageState extends State<HomePage> {
       selectedIndex: _selectedIndex,
       onDestinationSelected: (index) {
         if (index == 2) {
-          context.go(
-            AppRoutes.qrCheckinID,
-            extra: {
-              'uid': user.uid,
-              'displayName': user.displayName ?? 'No name',
-            },
+          context.push(
+            AppRoutes.qrCheckin,
+            // TODO: Send session to qrCheckin Page
+            // extra: {
+            //   'uid': user.uid,
+            //   'displayName': user.displayName ?? 'No name',
+            // },
           );
         }
         if (index == 4) {
