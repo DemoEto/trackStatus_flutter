@@ -18,6 +18,9 @@ dependencies:
   font_awesome_flutter: '>= 4.7.0'
   mobile_scanner: ^7.0.1
   pretty_qr_code: ^3.4.0
+  webview_flutter_android: 3.16.9
+  webview_flutter_wkwebview: ^3.18.5
+  webview_flutter: ^4.9.0  
 
 dev_dependencies:
   flutter_test:

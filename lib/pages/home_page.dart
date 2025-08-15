@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:trackstatus_flutter/routes/app_route.dart';
 
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+
+import '../routes/app_route.dart';
 import '../services/auth_service.dart';
 
 class HomePage extends StatefulWidget {
@@ -14,13 +18,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  int _selectedIndex = 0;
+  late final WebViewController webViewController;
+
   Future<User?> _reloadUser() async {
     final user = FirebaseAuth.instance.currentUser;
     await user?.reload(); // โหลดข้อมูลล่าสุด
     return FirebaseAuth.instance.currentUser; // รีเทิร์น user ที่ reload แล้ว
   }
-
-  int _selectedIndex = 0;
 
   Future<void> signOut() async {
     await AuthService().signOut();
@@ -30,7 +35,30 @@ class _HomePageState extends State<HomePage> {
     return const Text('Firebase Auth');
   }
 
-  Widget _userUid() {
+  @override
+  void initState() {
+    super.initState();
+    // สร้าง WebViewController สำหรับแสดงเว็บไซต์
+    PlatformWebViewControllerCreationParams params =
+        const PlatformWebViewControllerCreationParams();
+
+    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+      params =
+          WebKitWebViewControllerCreationParams.fromPlatformWebViewControllerCreationParams(
+            params,
+          );
+    } else if (WebViewPlatform.instance is AndroidWebViewPlatform) {
+      params =
+          AndroidWebViewControllerCreationParams.fromPlatformWebViewControllerCreationParams(
+            params,
+          );
+    }
+
+    webViewController = WebViewController.fromPlatformCreationParams(params);
+    webViewController.loadRequest(Uri.parse('https://www.rmutl.ac.th/'));
+  }
+
+  Widget _userInfoBar() {
     return FutureBuilder(
       future: _reloadUser(),
       builder: (context, snapshot) {
@@ -42,13 +70,23 @@ class _HomePageState extends State<HomePage> {
         final email = user?.email ?? 'ไม่พบอีเมล';
         final name = user?.displayName ?? 'ไม่มีชื่อ';
 
-        return Column(children: [Text(email), Text(name)]);
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(name ?? 'Name'),
+            ElevatedButton(onPressed: signOut, child: Text('Sign Out')),
+          ],
+        );
       },
     );
   }
-
-  Widget _signOutButton() {
-    return ElevatedButton(onPressed: signOut, child: const Text('Signout'));
+  Widget _getBody() {
+    return Column(
+      children: [
+        Padding(padding: const EdgeInsets.all(8.0), child: _userInfoBar()),
+        Expanded(child: WebViewWidget(controller: webViewController)),
+      ],
+    );
   }
 
   Widget _drawermenu() {
@@ -135,17 +173,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: _title()),
       drawer: _drawermenu(),
-
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [_userUid(), _signOutButton()],
-        ),
-      ),
+      body: _getBody(),
       bottomNavigationBar: _buttomNavigation(),
     );
   }
