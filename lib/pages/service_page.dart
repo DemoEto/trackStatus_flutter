@@ -41,7 +41,7 @@ class ServicePage extends StatelessWidget {
             context: context,
             icon: FontAwesomeIcons.car,
             title: 'My Vehicle',
-            routeName: AppRoutes.home,
+            routeName: AppRoutes.vehicle,
           ),
           _buildCard(
             context: context,

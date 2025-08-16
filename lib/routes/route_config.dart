@@ -8,6 +8,7 @@ import '../pages/home_page.dart';
 import '../pages/login_page.dart';
 import '../pages/attend_history_page.dart';
 import '../pages/qr_checkin_page.dart';
+import '../pages/vehicle_page.dart';
 import '../services/auth_service.dart';
 
 final GoRouter router = GoRouter(
@@ -47,6 +48,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: AppRoutes.academicProfile,
       builder: (context, state) => const AcademicProfilePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.vehicle,
+      builder: (context, state) => const VehiclePage(),
     ),
   ],
 );
