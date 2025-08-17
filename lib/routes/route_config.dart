@@ -51,7 +51,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.qrScan,
-      builder: (context, state) => const QRScannerPage(),
+      builder: (context, state) => const QrScannerPage(),
     ),
   ],
 );
