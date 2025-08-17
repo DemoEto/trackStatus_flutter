@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:trackstatus_flutter/pages/qr_scanner_page.dart';
 
 import 'app_route.dart';
 
@@ -47,6 +48,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: AppRoutes.academicProfile,
       builder: (context, state) => const AcademicProfilePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.qrScan,
+      builder: (context, state) => const QRScannerPage(),
     ),
   ],
 );

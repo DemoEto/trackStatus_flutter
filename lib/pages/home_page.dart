@@ -131,7 +131,7 @@ class _HomePageState extends State<HomePage> {
       onDestinationSelected: (index) {
         if (index == 2) {
           context.push(
-            AppRoutes.qrCheckin,
+            AppRoutes.qrScan,
             // TODO: Send session to qrCheckin Page
             // extra: {
             //   'uid': user.uid,
