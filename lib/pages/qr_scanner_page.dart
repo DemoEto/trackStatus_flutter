@@ -34,7 +34,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(code)),
               );
-              if (code == AppRoutes.qrCheckin) {
+              if (code == "AppRoutes.qrCheckin") {
                 // ไปหน้า /qrCheckin
                 context.push(AppRoutes.qrCheckin);
               } 
