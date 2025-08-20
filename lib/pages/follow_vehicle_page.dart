@@ -10,6 +10,21 @@ class FollowVehiclePage extends StatefulWidget {
 class _FollowVehiclePageState extends State<FollowVehiclePage> {
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Detec Vehicle'),
+      ),
+      body: Column(
+        children: [
+          Center(
+            child: Image.asset('assets/images/avavav.jpg'),
+          ),
+          Padding(
+            padding: EdgeInsetsGeometry.directional(top: 10),
+            child: Text('Vehicle Status: '),
+          )
+        ],
+      ),
+    );
   }
 }
