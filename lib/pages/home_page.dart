@@ -139,6 +139,9 @@ class _HomePageState extends State<HomePage> {
             // },
           );
         }
+        if (index == 3){
+          context.push(AppRoutes.followVehicle);
+        }
         if (index == 4) {
           context.push(AppRoutes.service);
         } else {
