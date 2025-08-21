@@ -18,7 +18,7 @@ class _VehiclePageState extends State<VehiclePage> {
       // ลบเอกสารใน Firestore
       await FirebaseFirestore.instance.collection("vehicles").doc(vehicleId).delete();
 
-      // ลบรูปใน Storage ด้วย
+      // ลบรูปใน Storage
       await FirebaseStorage.instance.refFromURL(imageUrl).delete();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,23 +70,58 @@ class _VehiclePageState extends State<VehiclePage> {
             .orderBy("createdAt", descending: true)
             .snapshots(),
         builder: (context, snapshot) {
+          // กรณีมีข้อผิดพลาด
           if (snapshot.hasError) {
-            return const Center(child: Text("เกิดข้อผิดพลาดในการโหลดข้อมูล"));
+            return const Center(
+              child: Text(
+                "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+                style: TextStyle(color: Colors.red, fontSize: 16),
+              ),
+            );
           }
+
+          // กรณีกำลังโหลดข้อมูล
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final data = snapshot.data!.docs;
-
-          if (data.isEmpty) {
-            return const Center(child: Text("ยังไม่มีข้อมูลรถ"));
+          // ตรวจสอบว่า snapshot มีข้อมูลหรือไม่
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.directions_car,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    "ยังไม่มีข้อมูลรถ",
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "กดปุ่ม + เพื่อเพิ่มรถ",
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
           }
 
+          // แสดงรายการรถ
+          final data = snapshot.data!.docs;
           return ListView.builder(
             itemCount: data.length,
             itemBuilder: (context, index) {
               var vehicle = data[index];
+              // ตรวจสอบ null safety สำหรับข้อมูลจาก Firestore
+              final licensePlate = vehicle['licensePlate'] as String? ?? 'ไม่ระบุ';
+              final imageUrl = vehicle['imageUrl'] as String? ?? '';
+              final createdAt = (vehicle['createdAt'] as Timestamp?)?.toDate().toString() ?? 'ไม่ระบุ';
+
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
@@ -94,22 +129,27 @@ class _VehiclePageState extends State<VehiclePage> {
                 ),
                 elevation: 4,
                 child: ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      vehicle['imageUrl'],
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  leading: imageUrl.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            imageUrl,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.broken_image,
+                              size: 60,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.directions_car, size: 60, color: Colors.grey),
                   title: Text(
-                    vehicle['licensePlate'],
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 18),
+                    licensePlate,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
-                  subtitle: Text(
-                      "เพิ่มเมื่อ: ${vehicle['createdAt']?.toDate() ?? ''}"),
+                  subtitle: Text("เพิ่มเมื่อ: $createdAt"),
                   trailing: Wrap(
                     spacing: 8,
                     children: [
@@ -121,8 +161,8 @@ class _VehiclePageState extends State<VehiclePage> {
                             MaterialPageRoute(
                               builder: (context) => VehicleEditPage(
                                 vehicleId: vehicle.id,
-                                licensePlate: vehicle['licensePlate'],
-                                imageUrl: vehicle['imageUrl'],
+                                licensePlate: licensePlate,
+                                imageUrl: imageUrl,
                               ),
                             ),
                           );
@@ -130,7 +170,7 @@ class _VehiclePageState extends State<VehiclePage> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(vehicle.id, vehicle['imageUrl']),
+                        onPressed: () => _confirmDelete(vehicle.id, imageUrl),
                       ),
                     ],
                   ),
