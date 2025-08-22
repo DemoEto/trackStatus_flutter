@@ -177,6 +177,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
 <<<<<<< HEAD
+<<<<<<< HEAD
     version: "3.0.0"
 =======
     version: "2.24.1"
@@ -205,6 +206,9 @@ packages:
     source: hosted
     version: "3.10.17"
 >>>>>>> 3a3f0736409efc8e044d18a0931ad2919c5d1a7d
+=======
+    version: "3.0.0"
+>>>>>>> feature/qr_scan_page
   flutter:
     dependency: "direct main"
     description: flutter
@@ -252,10 +256,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
 <<<<<<< HEAD
+<<<<<<< HEAD
     version: "16.2.0"
 =======
     version: "16.0.0"
 >>>>>>> 3a3f0736409efc8e044d18a0931ad2919c5d1a7d
+=======
+    version: "16.2.0"
+>>>>>>> feature/qr_scan_page
   http:
     dependency: transitive
     description:
