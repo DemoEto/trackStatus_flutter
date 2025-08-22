@@ -4,7 +4,12 @@ class AppRoutes {
   static const String attendHistory = '/attenHistory';
   static const String service = '/service';
   static const String qrCheckin = '/qrCheckin';
-  static const String qrCheckinID = '/qrCheckinID';
+  // static const String qrCheckinID = '/qrCheckinID';
   static const String academicProfile = '/academicProfile';
+<<<<<<< HEAD
   static const String followVehicle = '/followVehicle';
+=======
+  static const String vehicle = '/vehicle';
+  
+>>>>>>> 3a3f0736409efc8e044d18a0931ad2919c5d1a7d
 }
