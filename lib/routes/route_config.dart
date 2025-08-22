@@ -1,10 +1,6 @@
 import 'package:go_router/go_router.dart';
-<<<<<<< HEAD
 import 'package:trackstatus_flutter/pages/follow_vehicle_page.dart';
-=======
 import 'package:trackstatus_flutter/pages/qr_scanner_page.dart';
->>>>>>> feature/qr_scan_page
-
 import 'app_route.dart';
 
 import '../pages/academic_profile_page.dart';
@@ -54,18 +50,16 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const AcademicProfilePage(),
     ),
     GoRoute(
-<<<<<<< HEAD
-<<<<<<< HEAD
       path: AppRoutes.followVehicle,
       builder: (context, state) => const FollowVehiclePage(),
-=======
+    ),
+    GoRoute(
       path: AppRoutes.vehicle,
       builder: (context, state) => const VehiclePage(),
->>>>>>> 3a3f0736409efc8e044d18a0931ad2919c5d1a7d
-=======
+    ),
+    GoRoute(
       path: AppRoutes.qrScan,
       builder: (context, state) => const QrScannerPage(),
->>>>>>> feature/qr_scan_page
     ),
   ],
 );
