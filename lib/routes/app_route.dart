@@ -6,6 +6,7 @@ class AppRoutes {
   static const String qrCheckin = '/qrCheckin';
   // static const String qrCheckinID = '/qrCheckinID';
   static const String academicProfile = '/academicProfile';
+  static const String followVehicle = '/followVehicle';
   static const String vehicle = '/vehicle';
-  
+  static const String qrScan = '/qrScan';
 }

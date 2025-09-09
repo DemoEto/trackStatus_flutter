@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+
 
 import '../routes/app_route.dart';
 import '../services/auth_service.dart';
@@ -80,6 +82,7 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
   Widget _getBody() {
     return Column(
       children: [
@@ -131,13 +134,16 @@ class _HomePageState extends State<HomePage> {
       onDestinationSelected: (index) {
         if (index == 2) {
           context.push(
-            AppRoutes.qrCheckin,
+            AppRoutes.qrScan,
             // TODO: Send session to qrCheckin Page
             // extra: {
             //   'uid': user.uid,
             //   'displayName': user.displayName ?? 'No name',
             // },
           );
+        }
+        if (index == 3) {
+          context.push(AppRoutes.followVehicle);
         }
         if (index == 4) {
           context.push(AppRoutes.service);
@@ -158,12 +164,18 @@ class _HomePageState extends State<HomePage> {
           icon: Badge(child: Icon(Icons.notifications_sharp)),
           label: 'Notifications',
         ),
-        NavigationDestination(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
         NavigationDestination(
-          icon: Badge(label: Text('2'), child: Icon(Icons.messenger_sharp)),
-          label: 'Messages',
+          icon: Icon(Icons.qr_code_scanner), 
+          label: 'Scan'
         ),
-        NavigationDestination(icon: Icon(Icons.person), label: 'Service'),
+        NavigationDestination(
+          icon: FaIcon(FontAwesomeIcons.carOn),
+          label: 'Detect car',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person), 
+          label: 'Service'
+        ),
       ],
     );
   }
