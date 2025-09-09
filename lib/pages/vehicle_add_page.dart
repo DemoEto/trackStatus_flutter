@@ -14,81 +14,131 @@ class UploadImagePage extends StatefulWidget {
 class _UploadImagePageState extends State<UploadImagePage> {
   File? _imageFile;
   bool _isLoading = false;
+  final _plateCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _plateCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile =
-        await picker.pickImage(source: ImageSource.gallery); // หรือ camera
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _imageFile = File(picked.path));
     }
   }
 
-  Future<void> _uploadImage() async {
-    if (_imageFile == null) return;
-
+  Future<void> _save() async {
+    if (_imageFile == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("กรุณาเลือกรูปก่อน")));
+      return;
+    }
     setState(() => _isLoading = true);
 
+    final fileName = 'veh_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ref = FirebaseStorage.instance.ref('vehicles/$fileName');
+
     try {
-      // อัปโหลดไป Firebase Storage
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference ref =
-          FirebaseStorage.instance.ref().child("uploads").child(fileName);
-
-      UploadTask uploadTask = ref.putFile(_imageFile!);
-      TaskSnapshot snapshot = await uploadTask;
-
-      // ดึง URL ดาวน์โหลด
-      String downloadURL = await snapshot.ref.getDownloadURL();
-
-      // บันทึกลง Firestore
-      await FirebaseFirestore.instance.collection("images").add({
-        "url": downloadURL,
-        "createdAt": Timestamp.now(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Upload สำเร็จ ✅")),
+      // 1) อัปโหลด
+      await ref.putFile(
+        _imageFile!,
+        SettableMetadata(contentType: 'image/jpeg'),
       );
 
-      setState(() {
-        _imageFile = null;
+      // 2) ขอ URL (ต้องผ่าน rules read)
+      final url = await ref.getDownloadURL();
+
+      // 3) เขียนเข้า collection ที่หน้ารายการใช้อยู่ (vehicles)
+      await FirebaseFirestore.instance.collection('vehicles').add({
+        'licensePlate': _plateCtrl.text.trim(),
+        'imageUrl': url,
+        'createdAt': FieldValue.serverTimestamp(),
       });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('บันทึกเรียบร้อย ✅')));
+      Navigator.pop(context); // กลับไปหน้ารายการรถ
+    } on FirebaseException catch (e) {
+      // แยก error ให้รู้ว่า fail ตรงไหน
+      final code = e.code;
+      String where = 'unknown';
+      if (e.message?.contains('getDownloadURL') == true)
+        where = 'getDownloadURL';
+      if (e.message?.contains('putFile') == true) where = 'upload';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ผิดพลาด ($where): [${e.code}] ${e.message}')),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ผิดพลาด: $e')));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("อัปโหลดรูปเข้า Firebase")),
-      body: Center(
+      appBar: AppBar(title: const Text("เพิ่มรถ / อัปโหลดรูป")),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _imageFile != null
-                ? Image.file(_imageFile!, height: 200)
-                : const Icon(Icons.image, size: 100, color: Colors.grey),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.photo_library),
-              label: const Text("เลือกภาพ"),
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  color: Colors.grey[200],
+                  border: Border.all(color: Colors.teal, width: 2),
+                ),
+                child: _imageFile == null
+                    ? const Center(
+                        child: Icon(Icons.image, size: 64, color: Colors.grey),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Image.file(_imageFile!, fit: BoxFit.cover),
+                      ),
+              ),
             ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : _uploadImage,
-              icon: const Icon(Icons.cloud_upload),
-              label: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text("อัปโหลด"),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _plateCtrl,
+              decoration: InputDecoration(
+                labelText: "ป้ายทะเบียน",
+                prefixIcon: const Icon(
+                  Icons.directions_car,
+                  color: Colors.teal,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _save,
+                icon: const Icon(Icons.cloud_upload),
+                label: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("อัปโหลด & บันทึก"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
             ),
           ],
         ),

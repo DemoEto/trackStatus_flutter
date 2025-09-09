@@ -15,7 +15,10 @@ class _VehiclePageState extends State<VehiclePage> {
   // ลบข้อมูล + กันเคส imageUrl ว่าง/ลบไม่ได้
   Future<void> _deleteVehicle(String vehicleId, String imageUrl) async {
     try {
-      await FirebaseFirestore.instance.collection("vehicles").doc(vehicleId).delete();
+      await FirebaseFirestore.instance
+          .collection("vehicles")
+          .doc(vehicleId)
+          .delete();
 
       if (imageUrl.isNotEmpty) {
         try {
@@ -26,14 +29,14 @@ class _VehiclePageState extends State<VehiclePage> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ลบข้อมูลเรียบร้อย")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("ลบข้อมูลเรียบร้อย")));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("เกิดข้อผิดพลาดในการลบ: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("เกิดข้อผิดพลาดในการลบ: $e")));
     }
   }
 
@@ -68,9 +71,15 @@ class _VehiclePageState extends State<VehiclePage> {
         children: [
           Icon(Icons.directions_car, size: 64, color: Colors.grey),
           SizedBox(height: 16),
-          Text("ยังไม่มีข้อมูลรถ", style: TextStyle(fontSize: 18, color: Colors.grey)),
+          Text(
+            "ยังไม่มีข้อมูลรถ",
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
           SizedBox(height: 8),
-          Text("กดปุ่ม + เพื่อเพิ่มรถ", style: TextStyle(fontSize: 14, color: Colors.grey)),
+          Text(
+            "กดปุ่ม + เพื่อเพิ่มรถ",
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
         ],
       ),
     );
@@ -86,6 +95,7 @@ class _VehiclePageState extends State<VehiclePage> {
       appBar: AppBar(
         title: const Text("ข้อมูลรถ"),
         backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -132,7 +142,9 @@ class _VehiclePageState extends State<VehiclePage> {
             itemBuilder: (context, index) {
               final vehicle = docs[index].data();
 
-              final licensePlate = (vehicle['licensePlate'] as String?)?.trim().isNotEmpty == true
+              final licensePlate =
+                  (vehicle['licensePlate'] as String?)?.trim().isNotEmpty ==
+                      true
                   ? vehicle['licensePlate'] as String
                   : 'ไม่ระบุ';
 
@@ -151,7 +163,9 @@ class _VehiclePageState extends State<VehiclePage> {
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 4,
                 child: ListTile(
                   leading: imageUrl.isNotEmpty
@@ -162,14 +176,25 @@ class _VehiclePageState extends State<VehiclePage> {
                             width: 60,
                             height: 60,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.broken_image, size: 60, color: Colors.grey),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.broken_image,
+                                  size: 60,
+                                  color: Colors.grey,
+                                ),
                           ),
                         )
-                      : const Icon(Icons.directions_car, size: 60, color: Colors.grey),
+                      : const Icon(
+                          Icons.directions_car,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
                   title: Text(
                     licensePlate,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                   subtitle: Text("เพิ่มเมื่อ: $createdAtText"),
                   trailing: Wrap(
@@ -192,7 +217,8 @@ class _VehiclePageState extends State<VehiclePage> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(docs[index].id, imageUrl),
+                        onPressed: () =>
+                            _confirmDelete(docs[index].id, imageUrl),
                       ),
                     ],
                   ),
