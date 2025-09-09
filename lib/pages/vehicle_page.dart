@@ -60,7 +60,7 @@ class _VehiclePageState extends State<VehiclePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("ข้อมูลรถkkkkk"),
+        title: const Text("ข้อมูลรถ"),
         backgroundColor: Colors.teal,
         centerTitle: true,
       ),
