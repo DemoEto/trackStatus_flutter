@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:webview_flutter/webview_flutter.dart';
@@ -22,7 +23,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   late final WebViewController webViewController;
-
+  
   Future<User?> _reloadUser() async {
     final user = FirebaseAuth.instance.currentUser;
     await user?.reload(); // โหลดข้อมูลล่าสุด
@@ -60,22 +61,37 @@ class _HomePageState extends State<HomePage> {
     webViewController.loadRequest(Uri.parse('https://www.rmutl.ac.th/'));
   }
 
+  Future<String?> _fetchStudentName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('Students')
+        .where('std_UID', isEqualTo: user.uid)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      final data = querySnapshot.docs.first.data();
+      return "${data['std_fname']} ${data['std_lname']}";
+    }
+    return null;
+  }
+
   Widget _userInfoBar() {
-    return FutureBuilder(
-      future: _reloadUser(),
+    return FutureBuilder<String?>(
+      future: _fetchStudentName(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
+          return const Center(child: CircularProgressIndicator());
         }
-
-        final user = snapshot.data;
-        final email = user?.email ?? 'ไม่พบอีเมล';
-        final name = user?.displayName ?? 'ไม่มีชื่อ';
-
+        if (!snapshot.hasData) {
+          return const Center(child: Text("ไม่พบข้อมูลนักเรียน"));
+        }
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(name ?? 'Name'),
+            Text("${snapshot.data!}"),
             ElevatedButton(onPressed: signOut, child: Text('Sign Out')),
           ],
         );
