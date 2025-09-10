@@ -62,21 +62,26 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<String?> _fetchStudentName() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return null;
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('Students')
-        .where('std_UID', isEqualTo: user.uid)
-        .limit(1)
-        .get();
+  // ดึง document โดยตรงจาก uid
+  final doc = await FirebaseFirestore.instance
+      .collection('Users')
+      .doc(user.uid)
+      .get();
 
-    if (querySnapshot.docs.isNotEmpty) {
-      final data = querySnapshot.docs.first.data();
-      return "${data['std_fname']} ${data['std_lname']}";
-    }
-    return null;
+  if (doc.exists) {
+    final data = doc.data()!;
+    // print("Name: ${data['name']}, Role: ${data['role']}"); // โค้ดใหม่
+
+    // คืนค่า full name
+    return "${data['std_fname'] ?? data['name']} ${data['std_lname'] ?? ''}";
   }
+
+  return null;
+}
+
 
   Widget _userInfoBar() {
     return FutureBuilder<String?>(
