@@ -74,11 +74,10 @@ class _HomePageState extends State<HomePage> {
   if (doc.exists) {
     final data = doc.data()!;
     // print("Name: ${data['name']}, Role: ${data['role']}"); // โค้ดใหม่
-
+    
     // คืนค่า full name
-    return "${data['std_fname'] ?? data['name']} ${data['std_lname'] ?? ''}";
+    return "${data['name'] ?? 'ไม่มีข้อมูล'}";
   }
-
   return null;
 }
 
