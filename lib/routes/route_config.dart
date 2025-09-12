@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:trackstatus_flutter/pages/admin/users_manament_page.dart';
 import 'package:trackstatus_flutter/pages/follow_vehicle_page.dart';
 import 'package:trackstatus_flutter/pages/qr_scanner_page.dart';
 import 'app_route.dart';
@@ -10,7 +11,7 @@ import '../pages/login_page.dart';
 import '../pages/attend_history_page.dart';
 import '../pages/qr_checkin_page.dart';
 import '../pages/vehicle_page.dart';
-import '../pages/admin_menagement_page.dart';
+import '../pages/admin_management_page.dart';
 import '../services/auth_service.dart';
 
 final GoRouter router = GoRouter(
@@ -63,8 +64,12 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const QrScannerPage(),
     ),
     GoRoute(
-      path: AppRoutes.adminMenagement,
-      builder: (context, state) => const AdminMenagementPage(),
+      path: AppRoutes.adminManagement,
+      builder: (context, state) => const AdminManagementPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.usersManagement,
+      builder: (context, state) => const UsersManagementPage(),
     ),
   ],
 );

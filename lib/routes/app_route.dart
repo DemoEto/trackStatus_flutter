@@ -9,5 +9,6 @@ class AppRoutes {
   static const String followVehicle = '/followVehicle';
   static const String vehicle = '/vehicle';
   static const String qrScan = '/qrScan';
-  static const String adminMenagement = '/adminMenagement';
+  static const String adminManagement = '/adminManagement';
+  static const String usersManagement = '/usersManagement';
 }

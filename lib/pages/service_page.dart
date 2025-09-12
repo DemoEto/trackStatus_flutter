@@ -77,7 +77,7 @@ class ServicesPage extends StatelessWidget {
                 context: context,
                 icon: Icons.admin_panel_settings,
                 title: 'ADMIN Management',
-                routeName: AppRoutes.adminMenagement,
+                routeName: AppRoutes.adminManagement,
               ),
             );
           }
