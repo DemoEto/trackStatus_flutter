@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // ⬅️ เพิ่ม
 
 class UploadImagePage extends StatefulWidget {
   const UploadImagePage({super.key});
@@ -30,53 +31,58 @@ class _UploadImagePageState extends State<UploadImagePage> {
   }
 
   Future<void> _save() async {
+    // ต้องเลือกรูปก่อน
     if (_imageFile == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("กรุณาเลือกรูปก่อน")));
       return;
     }
+
+    // ต้องมีผู้ใช้ที่ล็อกอิน (anonymous ก็ได้)
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("ยังไม่ได้ล็อกอิน (anonymous)")),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    final fileName = 'veh_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final ref = FirebaseStorage.instance.ref('vehicles/$fileName');
+    final uid = user.uid;
+    final fileName = 'bus_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ref = FirebaseStorage.instance.ref('users/$uid/$fileName');
 
     try {
-      // 1) อัปโหลด
+      // 1) อัปโหลดไฟล์ไป Storage
       await ref.putFile(
         _imageFile!,
         SettableMetadata(contentType: 'image/jpeg'),
       );
 
-      // 2) ขอ URL (ต้องผ่าน rules read)
+      // 2) ขอ URL
       final url = await ref.getDownloadURL();
 
-      // 3) เขียนเข้า collection ที่หน้ารายการใช้อยู่ (vehicles)
-      await FirebaseFirestore.instance.collection('vehicles').add({
-        'licensePlate': _plateCtrl.text.trim(),
-        'imageUrl': url,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('บันทึกเรียบร้อย ✅')));
-      Navigator.pop(context); // กลับไปหน้ารายการรถ
-    } on FirebaseException catch (e) {
-      // แยก error ให้รู้ว่า fail ตรงไหน
-      final code = e.code;
-      String where = 'unknown';
-      if (e.message?.contains('getDownloadURL') == true)
-        where = 'getDownloadURL';
-      if (e.message?.contains('putFile') == true) where = 'upload';
+      // 3) อัปเดต Users/{uid}.busImg (+ busPlate ถ้ากรอก)
+      final plate = _plateCtrl.text.trim();
+      await FirebaseFirestore.instance.collection('Users').doc(uid).set({
+        'busImg': url,
+        if (plate.isNotEmpty) 'busPlate': plate,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ผิดพลาด ($where): [${e.code}] ${e.message}')),
+        const SnackBar(
+          content: Text('อัปโหลดรูปและบันทึกไปที่ Users.busImg สำเร็จ ✅'),
+        ),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('ผิดพลาด: $e')));
+      Navigator.pop(context);
+    } on FirebaseException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ผิดพลาด: [${e.code}] ${e.message}')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
