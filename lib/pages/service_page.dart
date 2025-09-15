@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:trackstatus_flutter/models/user_model.dart';
 
 import '../routes/app_route.dart';
 import '../services/user_service.dart';
@@ -32,18 +33,19 @@ class ServicesPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Services')),
-      body: FutureBuilder<String?>(
-        future: userService.getUserRole(),
+      body: FutureBuilder<StudentData?>(
+        future: userService.fetchStudentData(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (!snapshot.hasData) {
-            return const Center(child: Text("ไม่พบข้อมูล role"));
+            return const Center(child: Text("ไม่พบข้อมูล"));
           }
 
-          final role = snapshot.data;
+          final student = snapshot.data!;
+          final role = student.role;
 
           // list เก็บการ์ดที่จะแสดง
           final List<Widget> cards = [];

@@ -12,6 +12,8 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../routes/app_route.dart';
 import '../services/auth_service.dart';
+import '../services/user_service.dart';
+import '../models/user_model.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,19 +25,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   late final WebViewController webViewController;
-  
-  Future<User?> _reloadUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    await user?.reload(); // โหลดข้อมูลล่าสุด
-    return FirebaseAuth.instance.currentUser; // รีเทิร์น user ที่ reload แล้ว
-  }
 
   Future<void> signOut() async {
     await AuthService().signOut();
-  }
-
-  Widget _title() {
-    return const Text('Firebase Auth');
   }
 
   @override
@@ -61,30 +53,12 @@ class _HomePageState extends State<HomePage> {
     webViewController.loadRequest(Uri.parse('https://www.rmutl.ac.th/'));
   }
 
-  Future<String?> _fetchStudentName() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return null;
-
-  // ดึง document โดยตรงจาก uid
-  final doc = await FirebaseFirestore.instance
-      .collection('Users')
-      .doc(user.uid)
-      .get();
-
-  if (doc.exists) {
-    final data = doc.data()!;
-    // print("Name: ${data['name']}, Role: ${data['role']}"); // โค้ดใหม่
-    
-    // คืนค่า full name
-    return "${data['name'] ?? 'ไม่มีข้อมูล'}";
-  }
-  return null;
-}
 
 
   Widget _userInfoBar() {
-    return FutureBuilder<String?>(
-      future: _fetchStudentName(),
+    final userService = UserService();
+    return FutureBuilder<StudentData?>(
+      future: userService.fetchStudentData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -203,7 +177,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: _title()),
+      appBar: AppBar(title: Text('Home')),
       drawer: _drawermenu(),
       body: _getBody(),
       bottomNavigationBar: _buttomNavigation(),
