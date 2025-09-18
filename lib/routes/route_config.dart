@@ -45,7 +45,11 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.qrCheckin,
-      builder: (context, state) => const QrCheckinPage(),
+      builder: (context, state) => const QrCheckinPage(fromQrScan: false),
+    ),
+    GoRoute(
+      path: AppRoutes.qrCheckinScan,
+      builder: (context, state) => const QrCheckinPage(fromQrScan: true),
     ),
     GoRoute(
       path: AppRoutes.academicProfile,

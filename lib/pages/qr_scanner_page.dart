@@ -36,7 +36,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
               );
               if (code == "AppRoutes.qrCheckin") {
                 // ไปหน้า /qrCheckin
-                context.push(AppRoutes.qrCheckin);
+                context.push(AppRoutes.qrCheckinScan);
               } 
               else {
                 // ถ้าไม่เจอ path ให้แจ้งเตือนและไป home

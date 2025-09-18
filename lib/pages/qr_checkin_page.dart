@@ -5,7 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class QrCheckinPage extends StatefulWidget {
-  const QrCheckinPage({super.key});
+  final bool fromQrScan;
+  const QrCheckinPage({super.key, this.fromQrScan = false});
 
   @override
   State<QrCheckinPage> createState() => _QrCheckinPageState();
@@ -15,13 +16,16 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   String? qrData = 'AppRoutes.qrCheckin';
   String? _status = "present"; // ค่าเริ่มต้น = มา
   Map<String, dynamic>? studentData; // เก็บข้อมูลนักเรียนจาก Firestore
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    _loadStudentData();
+    if(widget.fromQrScan == true){
+      _loadStudentData();
+    }
   }
-
 
   // ✅ บันทึกตอนครูกดยืนยัน
   Future<void> _submitAttendance() async {
@@ -68,12 +72,16 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     );
   }
 
+  
+
   Future<void> _loadStudentData() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user == null) return;
 
-    final doc =
-        await FirebaseFirestore.instance.collection('Users').doc(user.uid).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(user.uid)
+        .get();
     if (doc.exists) {
       setState(() {
         studentData = doc.data();
@@ -83,7 +91,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
 
   Widget _buildStudentRow() {
     if (studentData == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: Text("ไม่มีข้อมูลนักเรียน"),);
     }
 
     return Container(
@@ -98,11 +106,17 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(studentData!['stuId'] ?? '',
-                    style:
-                        const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                Text(studentData!['name'] ?? '',
-                    style: const TextStyle(fontSize: 16)),
+                Text(
+                  studentData!['stuId'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  studentData!['name'] ?? '',
+                  style: const TextStyle(fontSize: 16),
+                ),
               ],
             ),
           ),

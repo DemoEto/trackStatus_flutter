@@ -66,10 +66,11 @@ class _HomePageState extends State<HomePage> {
         if (!snapshot.hasData) {
           return const Center(child: Text("ไม่พบข้อมูลนักเรียน"));
         }
+        final student = snapshot.data!;
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("${snapshot.data!}"),
+            Text("$student.name"),
             ElevatedButton(onPressed: signOut, child: Text('Sign Out')),
           ],
         );
