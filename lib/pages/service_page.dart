@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:trackstatus_flutter/models/user_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/user_model.dart';
 import '../routes/app_route.dart';
 import '../services/user_service.dart';
 
@@ -30,11 +31,13 @@ class ServicesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userService = UserService();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
 
+    if (uid == null) return const Text("ไม่พบผู้ใช้");
     return Scaffold(
       appBar: AppBar(title: const Text('Services')),
-      body: FutureBuilder<StudentData?>(
-        future: userService.fetchStudentData(),
+      body: StreamBuilder<StudentData?>(
+        stream: userService.streamUser(uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

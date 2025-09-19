@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:webview_flutter/webview_flutter.dart';
@@ -57,20 +56,21 @@ class _HomePageState extends State<HomePage> {
 
   Widget _userInfoBar() {
     final userService = UserService();
-    return FutureBuilder<StudentData?>(
-      future: userService.fetchStudentData(),
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) return const Text("ไม่พบผู้ใช้");
+
+    return StreamBuilder<StudentData?>(
+      stream: userService.streamUser(uid),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: Text("ไม่พบข้อมูลนักเรียน"));
-        }
-        final student = snapshot.data!;
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+          final student = snapshot.data!;
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("$student.name"),
+            Text(student.name ?? "ไม่มีชื่อ"),
             ElevatedButton(onPressed: signOut, child: Text('Sign Out')),
           ],
         );

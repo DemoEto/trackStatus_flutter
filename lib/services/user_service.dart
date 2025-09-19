@@ -7,27 +7,29 @@ class UserService {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  Future<StudentData?> fetchStudentData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
+  final CollectionReference usersCollection =
+      FirebaseFirestore.instance.collection('Users');
 
-    final doc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(user.uid)
-        .get();
-
+  /// ดึง user ตาม uid
+  Future<StudentData?> getUserById(String uid) async {
+    final doc = await usersCollection.doc(uid).get();
     if (doc.exists) {
-      final data = doc.data()!;
-      return StudentData(
-        name: data['name'],
-        role: data['role'],
-        busId: data['busId'],
-        stdId: data['stdId'],
-      );
+      return StudentData.fromMap(doc.data() as Map<String, dynamic>);
     }
     return null;
   }
 
+  /// ดึง user แบบ real-time (Stream)
+  Stream<StudentData?> streamUser(String uid) {
+    return usersCollection.doc(uid).snapshots().map((doc) {
+      if (doc.exists) {
+        return StudentData.fromMap(doc.data() as Map<String, dynamic>);
+      }
+      return null;
+    });
+  }
+
+  // กรณีอยากได้ role โดยเฉพาะ
   Stream<String?> streamUserRole() {
     final user = _auth.currentUser;
     if (user == null) return const Stream.empty();
