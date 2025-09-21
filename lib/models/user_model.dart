@@ -31,3 +31,33 @@ class StudentData {
     );
   }
 }
+
+class TeacherData {
+  final String name;
+  final String role;
+  final String sub_ID;
+
+  TeacherData({
+    required this.name,
+    required this.role,
+    required this.sub_ID,
+  });
+
+  // แปลงเป็น Map สำหรับบันทึก Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      name: name,
+      role: role,
+      sub_ID: sub_ID,
+    };
+  }
+
+  // โหลดจาก Firestore document
+  factory TeacherData.fromMap(Map<String, dynamic> map) {
+    return TeacherData(
+      name: map['name'] ?? '',
+      role: map['role'] ?? '',
+      sub_ID: map['sub_ID'] ?? '',
+    );
+  }
+}

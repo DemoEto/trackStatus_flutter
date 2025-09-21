@@ -66,11 +66,11 @@ class _HomePageState extends State<HomePage> {
           if (!snapshot.hasData) {
             return Center(child: CircularProgressIndicator());
           }
-          final student = snapshot.data!;
+          final user = snapshot.data!;
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(student.name ?? "ไม่มีชื่อ"),
+            Text(user.name),Text(user.role),
             ElevatedButton(onPressed: signOut, child: Text('Sign Out')),
           ],
         );

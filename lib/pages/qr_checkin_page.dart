@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
+import '../services/user_service.dart';
+import '../models/user_model.dart';
+
 class QrCheckinPage extends StatefulWidget {
   final bool fromQrScan;
   const QrCheckinPage({super.key, this.fromQrScan = false});
@@ -16,14 +19,17 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   String? qrData = 'AppRoutes.qrCheckin';
   String? _status = "present"; // ค่าเริ่มต้น = มา
   Map<String, dynamic>? studentData; // เก็บข้อมูลนักเรียนจาก Firestore
+
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final userService = UserService();
+  final uid = FirebaseAuth.instance.currentUser?.uid;
 
   @override
   void initState() {
     super.initState();
-    if(widget.fromQrScan == true){
-      _loadStudentData();
+    if (widget.fromQrScan == true) {
+      userService.streamUser("$uid");
     }
   }
 
@@ -72,8 +78,6 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     );
   }
 
-  
-
   Future<void> _loadStudentData() async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -91,7 +95,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
 
   Widget _buildStudentRow() {
     if (studentData == null) {
-      return const Center(child: Text("ไม่มีข้อมูลนักเรียน"),);
+      return const Center(child: Text("ไม่มีข้อมูลนักเรียน"));
     }
 
     return Container(
@@ -172,11 +176,25 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           _buildStudentRow(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _submitAttendance,
-        label: const Text("ยืนยัน"),
-        icon: const Icon(Icons.check),
-      ),
+      floatingActionButton: StreamBuilder<String?>(
+        stream: userService.streamUserRole(), // ดึง role จาก service
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox.shrink(); // ระหว่างโหลดไม่ต้องโชว์อะไร
+          }
+
+          final role = snapshot.data;
+
+          if (role == "teacher") {
+            return FloatingActionButton.extended(
+              onPressed: _submitAttendance,
+              label: const Text("ยืนยัน"),
+              icon: const Icon(Icons.check),
+            );
+          }
+          return const SizedBox.shrink(); // ถ้าไม่ใช่ครู -> ไม่แสดงปุ่ม
+        },
+      ), // ไม่แสดงปุ่ม
     );
   }
 }
