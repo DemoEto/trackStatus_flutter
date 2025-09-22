@@ -30,6 +30,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     super.initState();
     if (widget.fromQrScan == true) {
       userService.streamUser("$uid");
+      _loadStudentData();
     }
   }
 
@@ -111,14 +112,13 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  studentData!['stuId'] ?? '',
+                  studentData!['stdId'] ?? 'ไม่พบข้อมูล',
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  studentData!['name'] ?? '',
+                  studentData!['name'] ?? 'ไม่พบข้อมูล',
                   style: const TextStyle(fontSize: 16),
                 ),
               ],
