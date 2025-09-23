@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:trackstatus_flutter/pages/admin/addUser_page.dart';
 import 'package:trackstatus_flutter/pages/admin/users_manament_page.dart';
 import 'package:trackstatus_flutter/pages/follow_vehicle_page.dart';
 import 'package:trackstatus_flutter/pages/qr_scanner_page.dart';
@@ -74,6 +75,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: AppRoutes.usersManagement,
       builder: (context, state) => const UsersManagementPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.addUser,
+      builder: (context, state) => const AddUserPage(),
     ),
   ],
 );

@@ -12,4 +12,5 @@ class AppRoutes {
   static const String qrScan = '/qrScan';
   static const String adminManagement = '/adminManagement';
   static const String usersManagement = '/usersManagement';
+  static const String addUser = '/addUser';
 }
