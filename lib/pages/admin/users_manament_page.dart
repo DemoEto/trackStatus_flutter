@@ -34,46 +34,48 @@ class UsersManagementPage extends StatelessWidget {
               rows: List<DataRow>.generate(users.length, (index) {
                 final doc = users[index];
                 final data = doc.data() as Map<String, dynamic>;
-                return DataRow(cells: [
-                  DataCell(Text("${index + 1}")),
-                  DataCell(Text(data['id'] ?? '')),
-                  DataCell(Text(data['name'] ?? '')),
-                  DataCell(Text(data['role'] ?? '')),
-                  DataCell(Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () {
-                          // TODO: ทำฟอร์มแก้ไข
-                        },
+                return DataRow(
+                  cells: [
+                    DataCell(Text("${index + 1}")),
+                    DataCell(Text(data['id'] ?? '')),
+                    DataCell(Text(data['name'] ?? '')),
+                    DataCell(Text(data['role'] ?? '')),
+                    DataCell(
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () {
+                              // TODO: ทำฟอร์มแก้ไข
+                              context.push('/editUser/${doc.id}');
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () async {
+                              await FirebaseFirestore.instance
+                                  .collection('Users')
+                                  .doc(doc.id)
+                                  .delete();
+                            },
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          await FirebaseFirestore.instance
-                              .collection('Users')
-                              .doc(doc.id)
-                              .delete();
-                        },
-                      ),
-                    ],
-                  )),
-                ]);
+                    ),
+                  ],
+                );
               }).toList(),
             ),
           );
         },
-        
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Action to perform when the FAB is pressed
-          // TODO: เพิ่ม user
           context.push(AppRoutes.addUser);
         },
         child: Icon(Icons.add), // The icon displayed on the FAB
       ),
     );
-    
   }
 }

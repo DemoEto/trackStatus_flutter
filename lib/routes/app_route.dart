@@ -13,4 +13,5 @@ class AppRoutes {
   static const String adminManagement = '/adminManagement';
   static const String usersManagement = '/usersManagement';
   static const String addUser = '/addUser';
+  static const String editUser = '/editUser';
 }
