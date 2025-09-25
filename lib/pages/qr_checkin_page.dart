@@ -1,131 +1,146 @@
 import 'package:flutter/material.dart';
-// import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
-import '../models/student_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 class QrCheckinPage extends StatefulWidget {
-  const QrCheckinPage({super.key});
+  final bool fromQrScan;
+  const QrCheckinPage({super.key, this.fromQrScan = false});
 
   @override
   State<QrCheckinPage> createState() => _QrCheckinPageState();
 }
 
 class _QrCheckinPageState extends State<QrCheckinPage> {
-  final List<Student> students = [
-    Student(id: '66543210004-8', name: 'MR.Kanatip Wongkiti'),
-    Student(id: '66543210005-9', name: 'MISS.Supannee Yindeeta'),
-    Student(id: '66543210006-0', name: 'MR.Chaiwat Promma'),
-    Student(id: '66543210007-1', name: 'MISS.Pattama Saelim'),
-    // เพิ่มนักเรียนคนอื่นๆ ได้ที่นี่
-  ];
-  //-- รับ userId ที่ login มา → ผ่าน route หรือ FirebaseAuth
-  final List<Map<String, String>> _studentBlocks = [];
-  
-  // * ดึงข้อมูลจาก Firestore ด้วย userId
-  // final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-  // final data = userDoc.data(); // จะมี name, studentId เป็นต้น
-
-  Widget _buildStudentRow({required Student student}) {
-    
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.shade300, // สีของเส้นใต้
-            width: 1.0, // ความหนา
-          ),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 15.0,
-          vertical: 10.0,
-        ), // PADDING นี้
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              // ส่วนของ Text
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    student.id,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(student.name, style: const TextStyle(fontSize: 16)),
-                ],
-              ),
-            ),
-            Expanded(
-              // ส่วนของ Radio buttons
-              flex: 2,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildRadioForStudent(student, "present"),
-                  _buildRadioForStudent(student, "leave"),
-                  _buildRadioForStudent(student, "absent"),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ฟังก์ชันสร้าง radio ปุ่มสำหรับนักเรียนแต่ละคน
-  Widget _buildRadioForStudent(Student student, String value) {
-    return SizedBox(
-      // ใช้ Expanded เพื่อกระจายพื้นที่ให้เท่ากัน
-      width: 45,
-      height: 45,
-      child: Radio<String>(
-        value: value,
-        groupValue: student.status, // ใช้สถานะของนักเรียนแต่ละคน
-        onChanged: (newValue) {
-          setState(() {
-            student.status = newValue;
-          });
-        },
-      ),
-    );
-  }
-
-  //-- QR Generate Section
   String? qrData = 'AppRoutes.qrCheckin';
-  
+  String? _status = "present"; // ค่าเริ่มต้น = มา
+  Map<String, dynamic>? studentData; // เก็บข้อมูลนักเรียนจาก Firestore
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    if(widget.fromQrScan == true){
+      _loadStudentData();
+    }
+  }
+
+  // ✅ บันทึกตอนครูกดยืนยัน
+  Future<void> _submitAttendance() async {
+    if (studentData == null) return;
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    final ref = FirebaseFirestore.instance
+        .collection('Attendance')
+        .doc('${studentData!['uid']}_$today');
+
+    await ref.set({
+      'studentId': studentData!['uid'],
+      'studentCode': studentData!['studentCode'],
+      'name': studentData!['name'],
+      'status': _status,
+      'timestamp': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("บันทึกการเช็คชื่อเรียบร้อยแล้ว")),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  //-- QR Generator
   Widget _qrGenerator() {
     return Padding(
       padding: const EdgeInsets.all(10),
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: PrettyQrView.data(
+        data: qrData!,
+        errorCorrectLevel: QrErrorCorrectLevel.H,
+        decoration: const PrettyQrDecoration(
+          shape: PrettyQrSmoothSymbol(),
+          image: PrettyQrDecorationImage(
+            image: AssetImage('assets/images/login2.png'),
+            position: PrettyQrDecorationImagePosition.embedded,
+            padding: EdgeInsets.all(25),
+          ),
+          quietZone: PrettyQrQuietZone.modules(6),
+        ),
+      ),
+    );
+  }
+
+  
+
+  Future<void> _loadStudentData() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(user.uid)
+        .get();
+    if (doc.exists) {
+      setState(() {
+        studentData = doc.data();
+      });
+    }
+  }
+
+  Widget _buildStudentRow() {
+    if (studentData == null) {
+      return const Center(child: Text("ไม่มีข้อมูลนักเรียน"),);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+      ),
+      child: Row(
         children: [
-          PrettyQrView.data(
-            data: qrData!,
-            errorCorrectLevel: QrErrorCorrectLevel.H,
-            decoration: const PrettyQrDecoration(
-              shape: PrettyQrSmoothSymbol(),
-              image: PrettyQrDecorationImage(
-                image: AssetImage('assets/images/login2.png'),
-                position: PrettyQrDecorationImagePosition.embedded,
-                padding: EdgeInsets.all(25),
-              ),
-              quietZone: PrettyQrQuietZone.modules(6),
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  studentData!['stuId'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  studentData!['name'] ?? '',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
             ),
           ),
-          // Text('$qrData')
+          Expanded(
+            child: Radio<String>(
+              value: "present",
+              groupValue: _status,
+              onChanged: (val) => setState(() => _status = val),
+            ),
+          ),
+          Expanded(
+            child: Radio<String>(
+              value: "leave",
+              groupValue: _status,
+              onChanged: (val) => setState(() => _status = val),
+            ),
+          ),
+          Expanded(
+            child: Radio<String>(
+              value: "absent",
+              groupValue: _status,
+              onChanged: (val) => setState(() => _status = val),
+            ),
+          ),
         ],
       ),
     );
@@ -134,63 +149,33 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('QR & Check-In')),
+      appBar: AppBar(title: const Text("QR & Check-In")),
       body: Column(
         children: [
-          // QR section
           _qrGenerator(),
-          
-          // ส่วนหัวของตาราง: มา ลา ขาด
+
+          // Header Row
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 0.0,
-              vertical: 10.0,
-            ), // PADDING นี้
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                const Expanded(
-                  flex: 4,
-                  child: SizedBox.shrink(),
-                ), // พื้นที่สำหรับชื่อ
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      "มา",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      "ลา",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      "ขาด",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
+              children: const [
+                Expanded(flex: 3, child: SizedBox.shrink()),
+                Expanded(child: Center(child: Text("มา"))),
+                Expanded(child: Center(child: Text("ลา"))),
+                Expanded(child: Center(child: Text("ขาด"))),
               ],
             ),
           ),
-          // เส้นแบ่งส่วนหัวและรายการนักเรียน
-          Divider(color: Colors.grey.shade400, height: 1, thickness: 1),
-          // รายการนักเรียน
-          Expanded(
-            child: ListView.builder(
-              itemBuilder: (context, index) {
-                return _buildStudentRow(student: students[index]);
-              },
-            ),
-          ),
+          Divider(thickness: 1, color: Colors.grey.shade400),
+
+          // Student Row
+          _buildStudentRow(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _submitAttendance,
+        label: const Text("ยืนยัน"),
+        icon: const Icon(Icons.check),
       ),
     );
   }

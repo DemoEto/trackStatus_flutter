@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:trackstatus_flutter/routes/app_route.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+
+
+import '../routes/app_route.dart';
 import '../services/auth_service.dart';
+import '../services/user_service.dart';
+import '../models/user_model.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,41 +22,69 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Future<User?> _reloadUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    await user?.reload(); // โหลดข้อมูลล่าสุด
-    return FirebaseAuth.instance.currentUser; // รีเทิร์น user ที่ reload แล้ว
-  }
-
   int _selectedIndex = 0;
+  late final WebViewController webViewController;
 
   Future<void> signOut() async {
     await AuthService().signOut();
   }
 
-  Widget _title() {
-    return const Text('Firebase Auth');
+  @override
+  void initState() {
+    super.initState();
+    // สร้าง WebViewController สำหรับแสดงเว็บไซต์
+    PlatformWebViewControllerCreationParams params =
+        const PlatformWebViewControllerCreationParams();
+
+    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+      params =
+          WebKitWebViewControllerCreationParams.fromPlatformWebViewControllerCreationParams(
+            params,
+          );
+    } else if (WebViewPlatform.instance is AndroidWebViewPlatform) {
+      params =
+          AndroidWebViewControllerCreationParams.fromPlatformWebViewControllerCreationParams(
+            params,
+          );
+    }
+
+    webViewController = WebViewController.fromPlatformCreationParams(params);
+    webViewController.loadRequest(Uri.parse('https://www.rmutl.ac.th/'));
   }
 
-  Widget _userUid() {
-    return FutureBuilder(
-      future: _reloadUser(),
+
+
+  Widget _userInfoBar() {
+    final userService = UserService();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) return const Text("ไม่พบผู้ใช้");
+
+    return StreamBuilder<StudentData?>(
+      stream: userService.streamUser(uid),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        }
-
-        final user = snapshot.data;
-        final email = user?.email ?? 'ไม่พบอีเมล';
-        final name = user?.displayName ?? 'ไม่มีชื่อ';
-
-        return Column(children: [Text(email), Text(name)]);
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+          final student = snapshot.data!;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(student.name ?? "ไม่มีชื่อ"),
+            ElevatedButton(onPressed: signOut, child: Text('Sign Out')),
+          ],
+        );
       },
     );
   }
 
-  Widget _signOutButton() {
-    return ElevatedButton(onPressed: signOut, child: const Text('Signout'));
+  Widget _getBody() {
+    return Column(
+      children: [
+        Padding(padding: const EdgeInsets.all(8.0), child: _userInfoBar()),
+        Expanded(child: WebViewWidget(controller: webViewController)),
+      ],
+    );
   }
 
   Widget _drawermenu() {
@@ -93,13 +129,16 @@ class _HomePageState extends State<HomePage> {
       onDestinationSelected: (index) {
         if (index == 2) {
           context.push(
-            AppRoutes.qrCheckin,
+            AppRoutes.qrScan,
             // TODO: Send session to qrCheckin Page
             // extra: {
             //   'uid': user.uid,
             //   'displayName': user.displayName ?? 'No name',
             // },
           );
+        }
+        if (index == 3) {
+          context.push(AppRoutes.followVehicle);
         }
         if (index == 4) {
           context.push(AppRoutes.service);
@@ -120,12 +159,18 @@ class _HomePageState extends State<HomePage> {
           icon: Badge(child: Icon(Icons.notifications_sharp)),
           label: 'Notifications',
         ),
-        NavigationDestination(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
         NavigationDestination(
-          icon: Badge(label: Text('2'), child: Icon(Icons.messenger_sharp)),
-          label: 'Messages',
+          icon: Icon(Icons.qr_code_scanner), 
+          label: 'Scan'
         ),
-        NavigationDestination(icon: Icon(Icons.person), label: 'Service'),
+        NavigationDestination(
+          icon: FaIcon(FontAwesomeIcons.carOn),
+          label: 'Detect car',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person), 
+          label: 'Service'
+        ),
       ],
     );
   }
@@ -133,19 +178,9 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: _title()),
+      appBar: AppBar(title: Text('Home')),
       drawer: _drawermenu(),
-
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [_userUid(), _signOutButton()],
-        ),
-      ),
+      body: _getBody(),
       bottomNavigationBar: _buttomNavigation(),
     );
   }

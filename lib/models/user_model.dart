@@ -1,29 +1,33 @@
-class AppUser {
-  final String uid;
-  final String email;
+class StudentData {
   final String name;
+  final String role;
+  final String busId;
+  final String stdId;
 
-  AppUser({
-    required this.uid,
-    required this.email,
+  StudentData({
     required this.name,
+    required this.role,
+    required this.busId,
+    required this.stdId,
   });
 
-  // แปลงเป็น Map เพื่อบันทึกใน Firestore
+  // แปลงเป็น Map สำหรับบันทึก Firestore
   Map<String, dynamic> toMap() {
     return {
-      'uid': uid,
-      'email': email,
-      'name': name,
+      name: name,
+      role: role,
+      busId: busId,
+      stdId: stdId,
     };
   }
 
-  // สร้างจาก Firestore snapshot
-  factory AppUser.fromMap(Map<String, dynamic> map) {
-    return AppUser(
-      uid: map['uid'],
-      email: map['email'],
-      name: map['name'],
+  // โหลดจาก Firestore document
+  factory StudentData.fromMap(Map<String, dynamic> map) {
+    return StudentData(
+      name: map['name'] ?? '',
+      role: map['role'] ?? '',
+      busId: map['busId'] ?? '',
+      stdId: map['stdId'] ?? 'student',
     );
   }
 }
