@@ -4,6 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
+import '../services/user_service.dart';
+import '../services/addPendingAttendance.dart';
+import '../models/user_model.dart';
+
 class QrCheckinPage extends StatefulWidget {
   final bool fromQrScan;
   const QrCheckinPage({super.key, this.fromQrScan = false});
@@ -16,40 +20,49 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   String? qrData = 'AppRoutes.qrCheckin';
   String? _status = "present"; // ค่าเริ่มต้น = มา
   Map<String, dynamic>? studentData; // เก็บข้อมูลนักเรียนจาก Firestore
+  List<Map<String, dynamic>> scannedStudents = []; // เก็บนักเรียนที่สแกนเข้ามา
+
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final userService = UserService();
+  final uid = FirebaseAuth.instance.currentUser?.uid;
 
   @override
   void initState() {
     super.initState();
-    if(widget.fromQrScan == true){
-      _loadStudentData();
+    if (widget.fromQrScan == true) {
+      userService.streamUser("$uid");
+      addCurrentUserToList();
     }
   }
-
+  
   // ✅ บันทึกตอนครูกดยืนยัน
-  Future<void> _submitAttendance() async {
-    if (studentData == null) return;
+  Future<void> submitAttendance() async {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final batch = FirebaseFirestore.instance.batch();
 
-    final ref = FirebaseFirestore.instance
-        .collection('Attendance')
-        .doc('${studentData!['uid']}_$today');
+    for (var student in scannedStudents) {
+      final ref = FirebaseFirestore.instance
+          .collection('Attendance')
+          .doc('${student['uid']}_$today');
 
-    await ref.set({
-      'studentId': studentData!['uid'],
-      'studentCode': studentData!['studentCode'],
-      'name': studentData!['name'],
-      'status': _status,
-      'timestamp': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("บันทึกการเช็คชื่อเรียบร้อยแล้ว")),
-      );
-      Navigator.pop(context);
+      batch.set(ref, {
+        'studentId': student['stdId'],
+        'name': student['name'],
+        'status': student['status'],
+        'timestamp': FieldValue.serverTimestamp(),
+      });
     }
+
+    await batch.commit();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("บันทึกการมาเรียนเรียบร้อย")),
+    );
+
+    setState(() {
+      scannedStudents.clear(); // เคลียร์ list หลังบันทึก
+    });
   }
 
   //-- QR Generator
@@ -72,30 +85,35 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     );
   }
 
-  
-
-  Future<void> _loadStudentData() async {
+  Future<void> addCurrentUserToList() async {
     final user = _auth.currentUser;
     if (user == null) return;
+
+    // ตรวจว่าคนนี้ยังไม่อยู่ใน list
+    final exists = scannedStudents.any((s) => s['uid'] == user.uid);
+    if (exists) return;
 
     final doc = await FirebaseFirestore.instance
         .collection('Users')
         .doc(user.uid)
         .get();
-    if (doc.exists) {
-      setState(() {
-        studentData = doc.data();
+
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    setState(() {
+      scannedStudents.add({
+        'uid': user.uid,
+        'stdId': data['stdId'],
+        'name': data['name'],
+        'status': 'present', // ค่า default
       });
-    }
+    });
   }
 
-  Widget _buildStudentRow() {
-    if (studentData == null) {
-      return const Center(child: Text("ไม่มีข้อมูลนักเรียน"),);
-    }
-
+  Widget _buildStudentRow(Map<String, dynamic> student) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
       ),
@@ -106,39 +124,42 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  studentData!['stuId'] ?? '',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  studentData!['name'] ?? '',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                Text(student['stdId']),
+                Text(student['name']),
               ],
             ),
           ),
           Expanded(
             child: Radio<String>(
-              value: "present",
-              groupValue: _status,
-              onChanged: (val) => setState(() => _status = val),
+              value: 'present',
+              groupValue: student['status'],
+              onChanged: (val) {
+                setState(() {
+                  student['status'] = val!;
+                });
+              },
             ),
           ),
           Expanded(
             child: Radio<String>(
-              value: "leave",
-              groupValue: _status,
-              onChanged: (val) => setState(() => _status = val),
+              value: 'leave',
+              groupValue: student['status'],
+              onChanged: (val) {
+                setState(() {
+                  student['status'] = val!;
+                });
+              },
             ),
           ),
           Expanded(
             child: Radio<String>(
-              value: "absent",
-              groupValue: _status,
-              onChanged: (val) => setState(() => _status = val),
+              value: 'absent',
+              groupValue: student['status'],
+              onChanged: (val) {
+                setState(() {
+                  student['status'] = val!;
+                });
+              },
             ),
           ),
         ],
@@ -153,7 +174,6 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
       body: Column(
         children: [
           _qrGenerator(),
-
           // Header Row
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -169,14 +189,28 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           Divider(thickness: 1, color: Colors.grey.shade400),
 
           // Student Row
-          _buildStudentRow(),
+          ...scannedStudents.map((s) => _buildStudentRow(s)).toList(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _submitAttendance,
-        label: const Text("ยืนยัน"),
-        icon: const Icon(Icons.check),
-      ),
+      floatingActionButton: StreamBuilder<String?>(
+        stream: userService.streamUserRole(), // ดึง role จาก service
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox.shrink(); // ระหว่างโหลดไม่ต้องโชว์อะไร
+          }
+
+          final role = snapshot.data;
+
+          if (role == "teacher") {
+            return FloatingActionButton.extended(
+              onPressed: submitAttendance,
+              label: const Text("ยืนยัน"),
+              icon: const Icon(Icons.check),
+            );
+          }
+          return const SizedBox.shrink(); // ถ้าไม่ใช่ครู -> ไม่แสดงปุ่ม
+        },
+      ), // ไม่แสดงปุ่ม
     );
   }
 }
