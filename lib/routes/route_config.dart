@@ -49,7 +49,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.qrCheckin,
-      builder: (context, state) => const QrCheckinPage(fromQrScan: false,subId: "",date: "",),
+      builder: (context, state) => const QrCheckinPage(fromQrScan: false,subId: "",date: "",teacherId: "",),
     ),
     // GoRoute(
     //   path: AppRoutes.qrCheckinScan,
@@ -61,7 +61,8 @@ final GoRouter router = GoRouter(
       builder: (context, state) {
         final subId = state.pathParameters['subId']!;
         final date = state.pathParameters['date']!;
-        return QrCheckinPage(fromQrScan: true,subId: subId,date: date);
+        final teacherId = state.pathParameters['teacherId']!;
+        return QrCheckinPage(fromQrScan: true,subId: subId,date: date, teacherId:teacherId);
       },
     ),
     GoRoute(

@@ -12,11 +12,13 @@ class QrCheckinPage extends StatefulWidget {
   final bool fromQrScan;
   final String subId;
   final String date;
+  final String teacherId;
   const QrCheckinPage({
     super.key,
     this.fromQrScan = false,
     required this.subId,
     required this.date,
+    required this.teacherId,
   });
 
   @override
@@ -198,7 +200,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
                 final teacherId = user?.uid ?? "";
                 setState(() {
                   qrData =
-                      "AppRoutes.qrCheckin/${selectedSubject}/${today.split("at"[1])}/${teacherId}";
+                      "/AppRoutes.qrCheckin/${selectedSubject}/${today.split("at"[1])}/${teacherId}";
                 });
                 print("❤️ $qrData");
               } else {
