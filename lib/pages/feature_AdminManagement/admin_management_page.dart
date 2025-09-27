@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import '../routes/app_route.dart';
+import '../../routes/app_route.dart';
 
 class AdminManagementPage extends StatelessWidget {
   const AdminManagementPage({super.key});

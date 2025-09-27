@@ -1,29 +1,27 @@
-// lib/services/attendance_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-class AttendanceService {
-  static Future<void> addPendingAttendance(String studentUid) async {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+Future<void> savePendingAttendance({
+  required String stdId,
+  required String status,
+  required String subId,
+  required String teacherId,
+}) async {
+  // วันที่วันนี้เป็น string เช่น "2025-09-27"
+  String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-    final userDoc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(studentUid)
-        .get();
+  // อ้างอิง collection pendingAttendance
+  final pendingRef = FirebaseFirestore.instance.collection('pendingAttendance');
 
-    if (!userDoc.exists) return;
-
-    final data = userDoc.data()!;
-    final ref = FirebaseFirestore.instance
-        .collection('PendingAttendance')
-        .doc('${studentUid}_$today');
-
-    await ref.set({
-      'studentId': data['stdId'],
-      'name': data['name'],
-      'uid': studentUid,
-      'status': 'pending',
-      'timestamp': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
+  await pendingRef.add({
+    'date': today,
+    'students': [
+      {
+        'status': status,
+        'stdId': stdId,
+        'subId': subId,
+        'teacherId': teacherId,
+      }
+    ]
+  });
 }

@@ -3,9 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../models/user_model.dart';
-import '../routes/app_route.dart';
-import '../services/user_service.dart';
+import '../../models/user_model.dart';
+import '../../routes/app_route.dart';
+import '../../services/user_service.dart';
 
 class ServicesPage extends StatelessWidget {
   const ServicesPage({super.key});

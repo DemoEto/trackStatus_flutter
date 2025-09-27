@@ -1,21 +1,21 @@
 import 'package:go_router/go_router.dart';
-import 'package:trackstatus_flutter/pages/admin/addAttendance_page.dart';
-import 'package:trackstatus_flutter/pages/admin/addUser_page.dart';
-import 'package:trackstatus_flutter/pages/admin/attendance_manament_page.dart';
-import 'package:trackstatus_flutter/pages/admin/editUser_page.dart';
-import 'package:trackstatus_flutter/pages/admin/users_manament_page.dart';
-import 'package:trackstatus_flutter/pages/follow_vehicle_page.dart';
-import 'package:trackstatus_flutter/pages/qr_scanner_page.dart';
+import 'package:trackstatus_flutter/pages/feature_AdminManagement/addAttendance_page.dart';
+import 'package:trackstatus_flutter/pages/feature_AdminManagement/addUser_page.dart';
+import 'package:trackstatus_flutter/pages/feature_AdminManagement/attendance_manament_page.dart';
+import 'package:trackstatus_flutter/pages/feature_AdminManagement/editUser_page.dart';
+import 'package:trackstatus_flutter/pages/feature_AdminManagement/users_manament_page.dart';
+import 'package:trackstatus_flutter/pages/feature_followBuses/follow_vehicle_page.dart';
+import 'package:trackstatus_flutter/pages/feature_QRscan/qr_scanner_page.dart';
 import 'app_route.dart';
 
-import '../pages/academic_profile_page.dart';
-import '../pages/service_page.dart';
-import '../pages/home_page.dart';
-import '../pages/login_page.dart';
-import '../pages/attend_history_page.dart';
-import '../pages/qr_checkin_page.dart';
-import '../pages/vehicle_page.dart';
-import '../pages/admin_management_page.dart';
+import '../pages/feautre_Services/academic_profile_page.dart';
+import '../pages/feautre_Services/service_page.dart';
+import '../pages/feature_HomePage/home_page.dart';
+import '../pages/feature_Login/login_page.dart';
+import '../pages/feature_ScanHistories/attend_history_page.dart';
+import '../pages/feature_QRscan/qr_checkin_page.dart';
+import '../pages/feature_AddMyVehicle/vehicle_page.dart';
+import '../pages/feature_AdminManagement/admin_management_page.dart';
 import '../services/auth_service.dart';
 
 final GoRouter router = GoRouter(
@@ -49,18 +49,19 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.qrCheckin,
-      builder: (context, state) => const QrCheckinPage(fromQrScan: false,subId: "",),
+      builder: (context, state) => const QrCheckinPage(fromQrScan: false,subId: "",date: "",),
     ),
     // GoRoute(
     //   path: AppRoutes.qrCheckinScan,
     //   builder: (context, state) => const QrCheckinPage(fromQrScan: true),
     // ),
     GoRoute(
-      path: AppRoutes.qrCheckinScan + '/:subId',
+      path: AppRoutes.qrCheckinScan + '/:subId/:date/:teacherId',
       name: AppRoutes.qrCheckinScan,
       builder: (context, state) {
         final subId = state.pathParameters['subId']!;
-        return QrCheckinPage(fromQrScan: true,subId: subId);
+        final date = state.pathParameters['date']!;
+        return QrCheckinPage(fromQrScan: true,subId: subId,date: date);
       },
     ),
     GoRoute(

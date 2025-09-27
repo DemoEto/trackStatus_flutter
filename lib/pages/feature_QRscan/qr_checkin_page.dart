@@ -4,13 +4,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
-import '../services/user_service.dart';
-import '../models/user_model.dart';
+import '../../services/user_service.dart';
+import '../../services/addPendingAttendance.dart';
+import '../../models/user_model.dart';
 
 class QrCheckinPage extends StatefulWidget {
   final bool fromQrScan;
   final String subId;
-  const QrCheckinPage({super.key, this.fromQrScan = false, required this.subId });
+  final String date;
+  const QrCheckinPage({
+    super.key,
+    this.fromQrScan = false,
+    required this.subId,
+    required this.date,
+  });
 
   @override
   State<QrCheckinPage> createState() => _QrCheckinPageState();
@@ -26,6 +33,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   final _firestore = FirebaseFirestore.instance;
   final userService = UserService();
   final uid = FirebaseAuth.instance.currentUser?.uid;
+  final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   @override
   void initState() {
@@ -34,12 +42,56 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
       userService.streamUser("$uid");
       addCurrentUserToList();
     }
+    // print('🤣 ${today}');
     _loadSubjects();
   }
 
   // ✅ บันทึกตอนครูกดยืนยัน
   Future<void> submitAttendance() async {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final batch = FirebaseFirestore.instance.batch();
+
+    for (var student in scannedStudents) {
+      final ref = FirebaseFirestore.instance
+          .collection('Attendance')
+          .doc('${student['uid']}_$today');
+
+      batch.set(ref, {
+        'studentId': student['id'],
+        'name': student['name'],
+        'status': student['status'],
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("บันทึกการมาเรียนเรียบร้อย")));
+
+    setState(() {
+      scannedStudents.clear(); // เคลียร์ list หลังบันทึก
+    });
+  }
+
+  onQrScanned(String scannedData) async {
+    // สมมุติว่า QR เก็บ stdId ไว้
+    await savePendingAttendance(
+      stdId: scannedData,
+      status: "present",
+      subId: "", // หรือค่า subId ที่คุณมี
+      teacherId: "", // หรือค่า teacherId ที่คุณมี
+    );
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("บันทึกการสแกนเรียบร้อย")));
+  }
+
+  // ✅ บันทึกตอนครูกดยืนยัน
+  Future<void> pendingAttendance() async {
+    final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final batch = FirebaseFirestore.instance.batch();
 
     for (var student in scannedStudents) {
@@ -87,11 +139,11 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   Widget _formCreateQR() {
     final _formKey = GlobalKey<FormState>();
 
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 50.0),
-      child: Column(
+      child: SizedBox(
+        width: 480,
+        child: Column(
         children: [
           FutureBuilder<QuerySnapshot>(
             future: FirebaseFirestore.instance.collection('Subjects').get(),
@@ -140,10 +192,13 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           ),
           SizedBox(height: 20.0),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (selectedSubject != null) {
+                final user = FirebaseAuth.instance.currentUser;
+                final teacherId = user?.uid ?? "";
                 setState(() {
-                  qrData = "AppRoutes.qrCheckin/$selectedSubject";
+                  qrData =
+                      "AppRoutes.qrCheckin/${selectedSubject}/${today.split("at"[1])}/${teacherId}";
                 });
                 print("❤️ $qrData");
               } else {
@@ -156,13 +211,17 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           ),
         ],
       ),
+      )
     );
   }
 
   //-- QR Generator
   Widget _qrGenerator(String qrData) {
-    return Padding(
-      padding: const EdgeInsets.all(10),
+  return Padding(
+    padding: const EdgeInsets.all(10),
+    child: SizedBox(
+      width: 480, // ✅ กำหนดขนาดเล็กลง
+      height: 480,
       child: PrettyQrView.data(
         data: qrData,
         errorCorrectLevel: QrErrorCorrectLevel.H,
@@ -171,13 +230,15 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           image: PrettyQrDecorationImage(
             image: AssetImage('assets/images/login2.png'),
             position: PrettyQrDecorationImagePosition.embedded,
-            padding: EdgeInsets.all(25),
+            padding: EdgeInsets.all(12), // ปรับ padding ให้เล็กลง
           ),
-          quietZone: PrettyQrQuietZone.modules(6),
+          quietZone: PrettyQrQuietZone.modules(3), // ลด quietZone ลง
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Future<void> addCurrentUserToList() async {
     final user = _auth.currentUser;
@@ -296,7 +357,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
             ),
             // TODO: show qr
             if (qrData != null) _qrGenerator(qrData!),
-            
+
             // Header Row
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),

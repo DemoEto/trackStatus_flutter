@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import '../routes/app_route.dart';
+import '../../routes/app_route.dart';
 
 class QrScannerPage extends StatefulWidget {
   const QrScannerPage({super.key});
@@ -31,13 +31,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
               // หยุดกล้องทันที
               _controller.stop();
               
-
+              print('👽${code}');
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(code)),
               );
               if (code.split("/")[0] == "AppRoutes.qrCheckin") {
                 // ไปหน้า /qrCheckin
-                context.push('/qrCheckinScan/${code.split("/")[1]}');
+                context.push('/qrCheckinScan/${code.split("/")[1]}/${code.split("/")[2]}');
               } 
               else {
                 // ถ้าไม่เจอ path ให้แจ้งเตือนและไป home
