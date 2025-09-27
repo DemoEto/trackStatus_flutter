@@ -1,4 +1,9 @@
 import 'package:go_router/go_router.dart';
+import 'package:trackstatus_flutter/pages/admin/addAttendance_page.dart';
+import 'package:trackstatus_flutter/pages/admin/addUser_page.dart';
+import 'package:trackstatus_flutter/pages/admin/attendance_manament_page.dart';
+import 'package:trackstatus_flutter/pages/admin/editUser_page.dart';
+import 'package:trackstatus_flutter/pages/admin/users_manament_page.dart';
 import 'package:trackstatus_flutter/pages/follow_vehicle_page.dart';
 import 'package:trackstatus_flutter/pages/qr_scanner_page.dart';
 import 'app_route.dart';
@@ -10,6 +15,7 @@ import '../pages/login_page.dart';
 import '../pages/attend_history_page.dart';
 import '../pages/qr_checkin_page.dart';
 import '../pages/vehicle_page.dart';
+import '../pages/admin_management_page.dart';
 import '../services/auth_service.dart';
 
 final GoRouter router = GoRouter(
@@ -39,11 +45,23 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.service,
-      builder: (context, state) => const ServicePage(),
+      builder: (context, state) => const ServicesPage(),
     ),
     GoRoute(
       path: AppRoutes.qrCheckin,
-      builder: (context, state) => const QrCheckinPage(),
+      builder: (context, state) => const QrCheckinPage(fromQrScan: false,subId: "",),
+    ),
+    // GoRoute(
+    //   path: AppRoutes.qrCheckinScan,
+    //   builder: (context, state) => const QrCheckinPage(fromQrScan: true),
+    // ),
+    GoRoute(
+      path: AppRoutes.qrCheckinScan + '/:subId',
+      name: AppRoutes.qrCheckinScan,
+      builder: (context, state) {
+        final subId = state.pathParameters['subId']!;
+        return QrCheckinPage(fromQrScan: true,subId: subId);
+      },
     ),
     GoRoute(
       path: AppRoutes.academicProfile,
@@ -60,6 +78,44 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: AppRoutes.qrScan,
       builder: (context, state) => const QrScannerPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminManagement,
+      builder: (context, state) => const AdminManagementPage(),
+    ),
+
+    GoRoute(
+      path: AppRoutes.usersManagement,
+      builder: (context, state) => const UsersManagementPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.addUser,
+      builder: (context, state) => const AddUserPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.editUser + '/:uid',
+      name: AppRoutes.editUser,
+      builder: (context, state) {
+        final uid = state.pathParameters['uid']!;
+        return EditUserPage(uid: uid,);
+      },
+    ),
+
+    GoRoute(
+      path: AppRoutes.attandenceManagement,
+      builder: (context, state) => const AttendanceManamentPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.addAttendance,
+      builder: (context, state) => const AddattendancePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.editAttendance + '/:uid',
+      name: AppRoutes.editAttendance,
+      builder: (context, state) {
+        final uid = state.pathParameters['uid']!;
+        return EditUserPage(uid: uid,);
+      },
     ),
   ],
 );

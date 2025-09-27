@@ -11,6 +11,8 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../routes/app_route.dart';
 import '../services/auth_service.dart';
+import '../services/user_service.dart';
+import '../models/user_model.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,18 +25,8 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   late final WebViewController webViewController;
 
-  Future<User?> _reloadUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    await user?.reload(); // โหลดข้อมูลล่าสุด
-    return FirebaseAuth.instance.currentUser; // รีเทิร์น user ที่ reload แล้ว
-  }
-
   Future<void> signOut() async {
     await AuthService().signOut();
-  }
-
-  Widget _title() {
-    return const Text('Firebase Auth');
   }
 
   @override
@@ -60,22 +52,25 @@ class _HomePageState extends State<HomePage> {
     webViewController.loadRequest(Uri.parse('https://www.rmutl.ac.th/'));
   }
 
+
+
   Widget _userInfoBar() {
-    return FutureBuilder(
-      future: _reloadUser(),
+    final userService = UserService();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) return const Text("ไม่พบผู้ใช้");
+
+    return StreamBuilder<StudentData?>(
+      stream: userService.streamUser(uid),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        }
-
-        final user = snapshot.data;
-        final email = user?.email ?? 'ไม่พบอีเมล';
-        final name = user?.displayName ?? 'ไม่มีชื่อ';
-
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+          final user = snapshot.data!;
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(name ?? 'Name'),
+            Text(user.name),Text(user.role),
             ElevatedButton(onPressed: signOut, child: Text('Sign Out')),
           ],
         );
@@ -183,7 +178,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: _title()),
+      appBar: AppBar(title: Text('Home')),
       drawer: _drawermenu(),
       body: _getBody(),
       bottomNavigationBar: _buttomNavigation(),
