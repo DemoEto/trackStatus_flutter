@@ -1,5 +1,7 @@
 import 'package:go_router/go_router.dart';
+import 'package:trackstatus_flutter/pages/admin/addAttendance_page.dart';
 import 'package:trackstatus_flutter/pages/admin/addUser_page.dart';
+import 'package:trackstatus_flutter/pages/admin/attendance_manament_page.dart';
 import 'package:trackstatus_flutter/pages/admin/editUser_page.dart';
 import 'package:trackstatus_flutter/pages/admin/users_manament_page.dart';
 import 'package:trackstatus_flutter/pages/follow_vehicle_page.dart';
@@ -47,11 +49,19 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.qrCheckin,
-      builder: (context, state) => const QrCheckinPage(fromQrScan: false),
+      builder: (context, state) => const QrCheckinPage(fromQrScan: false,subId: "",),
     ),
+    // GoRoute(
+    //   path: AppRoutes.qrCheckinScan,
+    //   builder: (context, state) => const QrCheckinPage(fromQrScan: true),
+    // ),
     GoRoute(
-      path: AppRoutes.qrCheckinScan,
-      builder: (context, state) => const QrCheckinPage(fromQrScan: true),
+      path: AppRoutes.qrCheckinScan + '/:subId',
+      name: AppRoutes.qrCheckinScan,
+      builder: (context, state) {
+        final subId = state.pathParameters['subId']!;
+        return QrCheckinPage(fromQrScan: true,subId: subId);
+      },
     ),
     GoRoute(
       path: AppRoutes.academicProfile,
@@ -73,6 +83,7 @@ final GoRouter router = GoRouter(
       path: AppRoutes.adminManagement,
       builder: (context, state) => const AdminManagementPage(),
     ),
+
     GoRoute(
       path: AppRoutes.usersManagement,
       builder: (context, state) => const UsersManagementPage(),
@@ -84,6 +95,23 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: AppRoutes.editUser + '/:uid',
       name: AppRoutes.editUser,
+      builder: (context, state) {
+        final uid = state.pathParameters['uid']!;
+        return EditUserPage(uid: uid,);
+      },
+    ),
+
+    GoRoute(
+      path: AppRoutes.attandenceManagement,
+      builder: (context, state) => const AttendanceManamentPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.addAttendance,
+      builder: (context, state) => const AddattendancePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.editAttendance + '/:uid',
+      name: AppRoutes.editAttendance,
       builder: (context, state) {
         final uid = state.pathParameters['uid']!;
         return EditUserPage(uid: uid,);

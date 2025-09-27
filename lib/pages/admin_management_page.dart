@@ -47,7 +47,7 @@ class AdminManagementPage extends StatelessWidget {
             context: context,
             icon: FontAwesomeIcons.fileContract,
             title: "Attendance Management",
-            routeName: AppRoutes.usersManagement,
+            routeName: AppRoutes.attandenceManagement,
           ),
           _buildCard(
             context: context,

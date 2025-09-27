@@ -31,12 +31,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
               // หยุดกล้องทันที
               _controller.stop();
               
+
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(code)),
               );
-              if (code == "AppRoutes.qrCheckin") {
+              if (code.split("/")[0] == "AppRoutes.qrCheckin") {
                 // ไปหน้า /qrCheckin
-                context.push(AppRoutes.qrCheckinScan);
+                context.push('/qrCheckinScan/${code.split("/")[1]}');
               } 
               else {
                 // ถ้าไม่เจอ path ให้แจ้งเตือนและไป home

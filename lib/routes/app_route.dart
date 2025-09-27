@@ -11,7 +11,12 @@ class AppRoutes {
   static const String vehicle = '/vehicle';
   static const String qrScan = '/qrScan';
   static const String adminManagement = '/adminManagement';
+
   static const String usersManagement = '/usersManagement';
   static const String addUser = '/addUser';
   static const String editUser = '/editUser';
+
+  static const String attandenceManagement = '/attandencManagement';
+  static const String addAttendance = '/addAttendance';
+  static const String editAttendance = '/editAttendance';
 }
