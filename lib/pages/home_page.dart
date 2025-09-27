@@ -8,7 +8,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
-
 import '../routes/app_route.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
@@ -24,6 +23,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   late final WebViewController webViewController;
+
+  final userService = UserService();
+  String? _role;
 
   Future<void> signOut() async {
     await AuthService().signOut();
@@ -50,27 +52,35 @@ class _HomePageState extends State<HomePage> {
 
     webViewController = WebViewController.fromPlatformCreationParams(params);
     webViewController.loadRequest(Uri.parse('https://www.rmutl.ac.th/'));
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      userService.streamUser(uid).listen((student) {
+        if (student != null) {
+          setState(() {
+            _role = student.role; // ✅ อัพเดต role
+          });
+        }
+      });
+    }
   }
 
-
-
   Widget _userInfoBar() {
-    final userService = UserService();
     final uid = FirebaseAuth.instance.currentUser?.uid;
-
     if (uid == null) return const Text("ไม่พบผู้ใช้");
 
     return StreamBuilder<StudentData?>(
       stream: userService.streamUser(uid),
       builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-          final user = snapshot.data!;
+        if (!snapshot.hasData) {
+          return Center(child: CircularProgressIndicator());
+        }
+        final user = snapshot.data!;
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(user.name),Text(user.role),
+            Text(user.name),
+            Text(user.role),
             ElevatedButton(onPressed: signOut, child: Text('Sign Out')),
           ],
         );
@@ -120,22 +130,18 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buttomNavigation() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return Scaffold(body: Center(child: Text("Not logged in")));
-    }
     return NavigationBar(
       selectedIndex: _selectedIndex,
       onDestinationSelected: (index) {
         if (index == 2) {
-          context.push(
-            AppRoutes.qrScan,
-            // TODO: Send session to qrCheckin Page
-            // extra: {
-            //   'uid': user.uid,
-            //   'displayName': user.displayName ?? 'No name',
-            // },
-          );
+          if (_role == 'student') {
+            context.push(AppRoutes.qrScan);
+          }else{
+            ScaffoldMessenger.of(context,).showSnackBar(SnackBar(
+              content: Text('คุณไม่ใช่นักเรียนจึงไม่สามารถแสกนได้')
+            ));
+            index = 0;
+          }
         }
         if (index == 3) {
           context.push(AppRoutes.followVehicle);
@@ -159,18 +165,12 @@ class _HomePageState extends State<HomePage> {
           icon: Badge(child: Icon(Icons.notifications_sharp)),
           label: 'Notifications',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.qr_code_scanner), 
-          label: 'Scan'
-        ),
+        NavigationDestination(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
         NavigationDestination(
           icon: FaIcon(FontAwesomeIcons.carOn),
           label: 'Detect car',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.person), 
-          label: 'Service'
-        ),
+        NavigationDestination(icon: Icon(Icons.person), label: 'Service'),
       ],
     );
   }
