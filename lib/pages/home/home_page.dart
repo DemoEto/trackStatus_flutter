@@ -57,9 +57,11 @@ class _HomePageState extends State<HomePage> {
     if (uid != null) {
       userService.streamUser(uid).listen((student) {
         if (student != null) {
-          setState(() {
-            _role = student.role; // ✅ อัพเดต role
-          });
+          if (mounted) {
+            setState(() {
+              _role = student.role; // ✅ อัพเดต role
+            });
+          }
         }
       });
     }
@@ -72,8 +74,8 @@ class _HomePageState extends State<HomePage> {
     return StreamBuilder<StudentData?>(
       stream: userService.streamUser(uid),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const Center(child: CircularProgressIndicator());
         }
         final user = snapshot.data!;
         return Row(
@@ -116,12 +118,22 @@ class _HomePageState extends State<HomePage> {
               context.push(AppRoutes.attendHistory);
             },
           ),
+          if (_role == 'admin') 
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings),
+              title: const Text('Admin Management'),
+              onTap: () {
+                context.push(AppRoutes.adminManagement);
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sign out'),
             onTap: () async {
               await AuthService().signOut(); // logout
-              Navigator.of(context).pushReplacementNamed('/login');
+              if (mounted) {
+                context.go(AppRoutes.login); // Use go to navigate to login
+              }
             },
           ),
         ],
@@ -133,44 +145,50 @@ class _HomePageState extends State<HomePage> {
     return NavigationBar(
       selectedIndex: _selectedIndex,
       onDestinationSelected: (index) {
-        if (index == 2) {
+        if (index == 1) { // Notifications
+          context.push('/notifications');
+        } else if (index == 2) { // QR Scan
           if (_role == 'student') {
             context.push(AppRoutes.qrScan);
-          }else{
+          } else {
             ScaffoldMessenger.of(context,).showSnackBar(SnackBar(
               content: Text('คุณไม่ใช่นักเรียนจึงไม่สามารถแสกนได้')
             ));
-            index = 0;
+            return; // Don't change the selected index
           }
-        }
-        if (index == 3) {
+        } else if (index == 3) { // Follow Vehicle (Detect car)
           context.push(AppRoutes.followVehicle);
-        }
-        if (index == 4) {
+        } else if (index == 4) { // Service
           context.push(AppRoutes.service);
-        } else {
-          setState(() {
-            _selectedIndex = index;
-          });
         }
+        
+        // Only update selected index if it's a valid navigation
+        setState(() {
+          _selectedIndex = index;
+        });
       },
       indicatorColor: const Color.fromARGB(255, 197, 211, 232),
-      destinations: const <Widget>[
-        NavigationDestination(
+      destinations: [
+        const NavigationDestination(
           selectedIcon: Icon(Icons.home),
           icon: Icon(Icons.home_outlined),
           label: 'Home',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Badge(child: Icon(Icons.notifications_sharp)),
           label: 'Notifications',
         ),
-        NavigationDestination(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
-        NavigationDestination(
+        if (_role == 'student') ...[
+          const NavigationDestination(
+            icon: Icon(Icons.qr_code_scanner), 
+            label: 'Scan',
+          ),
+        ],
+        const NavigationDestination(
           icon: FaIcon(FontAwesomeIcons.carOn),
           label: 'Detect car',
         ),
-        NavigationDestination(icon: Icon(Icons.person), label: 'Service'),
+        const NavigationDestination(icon: Icon(Icons.person), label: 'Service'),
       ],
     );
   }

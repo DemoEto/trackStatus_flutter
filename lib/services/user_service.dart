@@ -1,43 +1,101 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import '../models/user_model.dart';
 
 class UserService {
-  final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  final CollectionReference usersCollection =
-      FirebaseFirestore.instance.collection('Users');
+  // Get user role
+  Future<String?> getUserRole(String userId) async {
+    try {
+      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(userId).get();
+      return userDoc.get('role') as String?;
+    } catch (e) {
+      print('Error getting user role: $e');
+      return null;
+    }
+  }
 
-  /// ดึง user ตาม uid
-  Future<StudentData?> getUserById(String uid) async {
-    final doc = await usersCollection.doc(uid).get();
-    if (doc.exists) {
-      return StudentData.fromMap(doc.data() as Map<String, dynamic>);
+  // Get user by ID (returning Map instead of UserModel)
+  Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(userId).get();
+      if (!userDoc.exists) return null;
+      
+      Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+      return data;
+    } catch (e) {
+      print('Error getting user: $e');
+      return null;
+    }
+  }
+
+  // Get current user's role
+  Future<String?> getCurrentUserRole() async {
+    User? currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      return await getUserRole(currentUser.uid);
     }
     return null;
   }
 
-  /// ดึง user แบบ real-time (Stream)
-  Stream<StudentData?> streamUser(String uid) {
-    return usersCollection.doc(uid).snapshots().map((doc) {
-      if (doc.exists) {
-        return StudentData.fromMap(doc.data() as Map<String, dynamic>);
-      }
-      return null;
-    });
-  }
-
-  // กรณีอยากได้ role โดยเฉพาะ
-  Stream<String?> streamUserRole() {
-    final user = _auth.currentUser;
-    if (user == null) return const Stream.empty();
-
+  // Get users by role
+  Stream<QuerySnapshot> getUsersByRole(String role) {
     return _firestore
         .collection('Users')
-        .doc(user.uid)
-        .snapshots()
-        .map((snapshot) => snapshot.data()?['role'] as String?);
+        .where('role', isEqualTo: role)
+        .snapshots();
+  }
+
+  // Get children of a parent
+  Future<List<String>?> getChildrenOfParent(String parentId) async {
+    try {
+      DocumentSnapshot parentDoc = await _firestore.collection('Users').doc(parentId).get();
+      if (!parentDoc.exists) return null;
+      
+      List<dynamic>? children = parentDoc.get('children');
+      return children?.cast<String>();
+    } catch (e) {
+      print('Error getting children of parent: $e');
+      return null;
+    }
+  }
+
+  // Get students assigned to a bus
+  Stream<QuerySnapshot> getStudentsOnBus(String busId) {
+    return _firestore
+        .collection('Users')
+        .where('busId', isEqualTo: busId)
+        .where('role', isEqualTo: 'student')
+        .snapshots();
+  }
+  
+  // Stream user data
+  Stream<StudentData?> streamUser(String userId) {
+    return _firestore.collection('Users').doc(userId).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      final data = doc.data() as Map<String, dynamic>;
+      return StudentData(
+        name: data['name'] ?? '',
+        role: data['role'] ?? '',
+        busId: data['busId'] ?? '',
+        stdId: data['stdId'] ?? '',
+      );
+    });
+  }
+  
+  // Stream user role
+  Stream<String?> streamUserRole() {
+    User? currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      return _firestore.collection('Users').doc(currentUser.uid).snapshots().map((doc) => doc.get('role'));
+    }
+    return const Stream.empty();
+  }
+  
+  // Start attendance notification service (placeholder)
+  void startAttendanceNotificationService() {
+    // This is a placeholder for now - implementation depends on the specific service
   }
 }

@@ -39,7 +39,7 @@ class AdminManagementPage extends StatelessWidget {
           ),
           _buildCard(
             context: context,
-            icon: FontAwesomeIcons.schoolCircleExclamation,
+            icon: FontAwesomeIcons.school,
             title: "School Management",
             routeName: AppRoutes.usersManagement,
           ),
@@ -47,13 +47,19 @@ class AdminManagementPage extends StatelessWidget {
             context: context,
             icon: FontAwesomeIcons.fileContract,
             title: "Attendance Management",
-            routeName: AppRoutes.attandenceManagement,
+            routeName: AppRoutes.attendanceManagement,
           ),
           _buildCard(
             context: context,
-            icon: FontAwesomeIcons.busSide,
+            icon: FontAwesomeIcons.bus,
             title: "Transport Management",
-            routeName: AppRoutes.usersManagement,
+            routeName: AppRoutes.vehicle,
+          ),
+          _buildCard(
+            context: context,
+            icon: FontAwesomeIcons.bell,
+            title: "Notification Management",
+            routeName: AppRoutes.notificationManagement,
           ),
           _buildCard(
             context: context,

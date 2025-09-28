@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class VehicleAddPage extends StatefulWidget {
-  const VehicleAddPage({super.key});
+  final bool isPersonalVehicle;
+  final bool isSchoolVehicle;
+
+  const VehicleAddPage({super.key, this.isPersonalVehicle = false, this.isSchoolVehicle = false});
 
   @override
   State<VehicleAddPage> createState() => _VehicleAddPageState();
@@ -44,15 +48,25 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
       TaskSnapshot snapshot = await uploadTask.whenComplete(() => null);
       String downloadUrl = await snapshot.ref.getDownloadURL();
 
+      // Determine vehicle type based on parameter
+      bool isPersonal = widget.isPersonalVehicle;
+      bool isSchool = widget.isSchoolVehicle;
+      
       await FirebaseFirestore.instance.collection("vehicles").add({
         "licensePlate": _licensePlateController.text.trim(),
         "imageUrl": downloadUrl,
+        "isPersonalVehicle": isPersonal,
+        "isSchoolVehicle": isSchool,
         "createdAt": FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
+        String successMessage = isPersonal 
+            ? "เพิ่มข้อมูลรถส่วนตัวเรียบร้อย\n(จำเป็นต้องได้รับการยืนยันจากผู้ปกครอง)" 
+            : "บันทึกข้อมูลเรียบร้อย";
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("บันทึกข้อมูลเรียบร้อย")),
+          SnackBar(content: Text(successMessage)),
         );
         Navigator.pop(context);
       }
@@ -67,10 +81,15 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
 
   @override
   Widget build(BuildContext context) {
+    bool isPersonal = widget.isPersonalVehicle;
+    String appBarTitle = isPersonal ? "เพิ่มข้อมูลรถส่วนตัว" : "เพิ่มข้อมูลรถ";
+    IconData appBarIcon = isPersonal ? Icons.directions_car : Icons.directions_bus;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text("เพิ่มข้อมูลรถ"),
-        backgroundColor: Colors.teal,
+        title: Text(appBarTitle),
+        backgroundColor: isPersonal ? Colors.blue : Colors.green,
+        foregroundColor: Colors.white,
         centerTitle: true,
       ),
       body: Padding(
@@ -86,11 +105,14 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(15),
                     color: Colors.grey[200],
-                    border: Border.all(color: Colors.teal, width: 2),
+                    border: Border.all(
+                      color: isPersonal ? Colors.blue : Colors.green, 
+                      width: 2
+                    ),
                   ),
                   child: _imageFile == null
-                      ? const Icon(Icons.add_a_photo,
-                          color: Colors.teal, size: 50)
+                      ? Icon(Icons.add_a_photo,
+                          color: isPersonal ? Colors.blue : Colors.green, size: 50)
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(15),
                           child: Image.file(
@@ -105,14 +127,43 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
                 controller: _licensePlateController,
                 decoration: InputDecoration(
                   labelText: "ป้ายทะเบียนรถ",
-                  prefixIcon:
-                      const Icon(Icons.directions_car, color: Colors.teal),
+                  prefixIcon: Icon(
+                    isPersonal ? Icons.directions_car : Icons.directions_bus,
+                    color: isPersonal ? Colors.blue : Colors.green
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
+              if (isPersonal) ...[
+                const Divider(),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.yellow.shade50,
+                    border: Border.all(color: Colors.yellow.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info, color: Colors.yellow.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "หมายเหตุ: ข้อมูลรถส่วนตัวนี้จะต้องได้รับการยืนยันจากผู้ปกครองก่อนจึงจะสามารถใช้งานได้",
+                          style: TextStyle(
+                            color: Colors.yellow.shade800,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -120,9 +171,10 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
                   icon: const Icon(Icons.save),
                   label: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("บันทึกข้อมูล"),
+                      : Text(isPersonal ? "บันทึกข้อมูล (ต้องยืนยัน)" : "บันทึกข้อมูล"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: isPersonal ? Colors.blue : Colors.green,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     textStyle: const TextStyle(fontSize: 18),
                     shape: RoundedRectangleBorder(

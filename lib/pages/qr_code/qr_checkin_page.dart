@@ -3,10 +3,11 @@ import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart'; // for debugPrint
 
 import '../../services/user_service.dart';
-import '../../services/addPendingAttendance.dart';
-import '../../models/user_model.dart';
+import '../../services/attendance_service.dart';
+import '../../utils/notification_helper.dart';
 
 class QrCheckinPage extends StatefulWidget {
   final bool fromQrScan;
@@ -25,7 +26,7 @@ class QrCheckinPage extends StatefulWidget {
 
 class _QrCheckinPageState extends State<QrCheckinPage> {
   String? qrData;
-  String? _status = "present"; // ค่าเริ่มต้น = มา
+  final String? _status = "present"; // ค่าเริ่มต้น = มา
   Map<String, dynamic>? studentData; // เก็บข้อมูลนักเรียนจาก Firestore
   List<Map<String, dynamic>> scannedStudents = []; // เก็บนักเรียนที่สแกนเข้ามา
 
@@ -62,13 +63,23 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
         'status': student['status'],
         'timestamp': FieldValue.serverTimestamp(),
       });
+      
+      // Send notification to parent about attendance status
+      await _sendAttendanceNotificationToParent(
+        studentId: student['id'],
+        studentName: student['name'],
+        status: student['status'],
+        subject: selectedSubject ?? 'General',
+      );
     }
 
     await batch.commit();
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("บันทึกการมาเรียนเรียบร้อย")));
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("บันทึกการมาเรียนเรียบร้อย")));
+    }
 
     setState(() {
       scannedStudents.clear(); // เคลียร์ list หลังบันทึก
@@ -77,16 +88,19 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
 
   onQrScanned(String scannedData) async {
     // สมมุติว่า QR เก็บ stdId ไว้
-    await savePendingAttendance(
+    final attendanceService = AttendanceService();
+    await attendanceService.savePendingAttendance(
       stdId: scannedData,
       status: "present",
       subId: "", // หรือค่า subId ที่คุณมี
       teacherId: "", // หรือค่า teacherId ที่คุณมี
     );
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("บันทึกการสแกนเรียบร้อย")));
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("บันทึกการสแกนเรียบร้อย")));
+    }
   }
 
   // ✅ บันทึกตอนครูกดยืนยัน
@@ -109,9 +123,11 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
 
     await batch.commit();
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("บันทึกการมาเรียนเรียบร้อย")));
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("บันทึกการมาเรียนเรียบร้อย")));
+    }
 
     setState(() {
       scannedStudents.clear(); // เคลียร์ list หลังบันทึก
@@ -130,15 +146,13 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
       subjectList = snapshot.docs
           .map(
             (doc) =>
-                (doc.data() as Map<String, dynamic>)['name']?.toString() ?? "",
+                doc.data()['name']?.toString() ?? "",
           )
           .toList();
     });
   }
 
   Widget _formCreateQR() {
-    final _formKey = GlobalKey<FormState>();
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 50.0),
       child: SizedBox(
@@ -198,16 +212,18 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
                 final teacherId = user?.uid ?? "";
                 setState(() {
                   qrData =
-                      "AppRoutes.qrCheckin/${selectedSubject}/${today.split("at"[1])}/${teacherId}";
+                      "AppRoutes.qrCheckinScan/${selectedSubject}/${today}/${teacherId}";
                 });
                 print("❤️ $qrData");
               } else {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text("กรุณาเลือกวิชา")));
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text("กรุณาเลือกวิชา")));
+                }
               }
             },
-            child: const Text("บันทึก"),
+            child: const Text("สร้าง QR Code"),
           ),
         ],
       ),
@@ -330,6 +346,36 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     );
   }
 
+  // Send notification to parent about student attendance
+  Future<void> _sendAttendanceNotificationToParent({
+    required String studentId,
+    required String studentName,
+    required String status,
+    required String subject,
+  }) async {
+    try {
+      // Find parent of this student and send notification
+      QuerySnapshot parentSnapshot = await _firestore
+          .collection('Users')
+          .where('role', isEqualTo: 'parent')
+          .get();
+          
+      for (var parentDoc in parentSnapshot.docs) {
+        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
+        if (children != null && children.contains(studentId)) {
+          await NotificationHelper.sendAttendanceNotificationToParent(
+            studentId: studentId,
+            parentUserId: parentDoc.id,
+            subject: subject,
+            status: status,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error sending notification to parent: $e');
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     final userService = UserService();

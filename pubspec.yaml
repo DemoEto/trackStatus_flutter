@@ -3,7 +3,7 @@ description: "A new Flutter project."
 publish_to: 'none' 
 version: 1.0.0+1
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.7.1
 
 dependencies:
   flutter:
@@ -11,9 +11,12 @@ dependencies:
   firebase_core: ^4.0.0
   firebase_auth: ^6.0.1 
   cloud_firestore: ^6.0.0
+  firebase_messaging: ^16.0.0
+  firebase_database: ^12.0.0
+  flutter_local_notifications: ^18.0.1
 
   cupertino_icons: ^1.0.8
-  flutter_lints: ^6.0.0
+  flutter_lints: ^5.0.0
   go_router: ^16.0.0
   font_awesome_flutter: '>= 4.7.0'
   mobile_scanner: ^7.0.1

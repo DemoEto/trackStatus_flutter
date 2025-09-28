@@ -40,22 +40,8 @@ class _LoginPageState extends State<LoginPage> {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final String uid = user.uid;
-        final String prefix = uid.substring(0, 1).toLowerCase();
-
-        if (prefix == 't') {
-          Navigator.pushReplacementNamed(context, '/teacherAttendanceView');
-        } else if (prefix == 's') {
-          Navigator.pushReplacementNamed(context, '/studentAttendanceView');
-        } else if (prefix == 'p') {
-          Navigator.pushReplacementNamed(context, '/parentAttendanceView');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไม่สามารถระบุประเภทผู้ใช้จาก UID ได้'),
-            ),
-          );
-        }
+        // Instead of navigating directly, we'll let the router handle the redirect
+        // The GoRouter will handle the redirect based on user role
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
