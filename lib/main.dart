@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:trackstatus_flutter/services/notification_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'firebase_options.dart'; // Firebase configuration
 import 'routes/route_config.dart'; // import GoRouter ที่คุณตั้งไว้
@@ -12,6 +12,9 @@ import 'theme/app_theme.dart'; // import the new app theme
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize date formatting for locale support
+  await initializeDateFormatting();
+  
   // Initialize Firebase with proper duplicate app handling
   try {
     await Firebase.initializeApp(
@@ -21,6 +24,7 @@ void main() async {
   } on FirebaseException catch (e) {
     if (e.code == 'duplicate-app') {
       print('Firebase app already exists, using existing app');
+      // Don't rethrow for duplicate app - this is expected behavior in some cases
     } else {
       print('Firebase initialization error: $e');
       rethrow;

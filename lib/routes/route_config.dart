@@ -1,5 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:trackstatus_flutter/routes/app_routes.dart';
+import 'package:trackstatus_flutter/routes/app_route.dart';
 import 'package:trackstatus_flutter/pages/admin/add_user_page.dart';
 import 'package:trackstatus_flutter/pages/admin/add_attendance_page.dart';
 import 'package:trackstatus_flutter/pages/admin/edit_user_page.dart';
