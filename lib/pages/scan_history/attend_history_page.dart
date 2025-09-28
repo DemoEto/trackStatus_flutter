@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
@@ -73,8 +74,19 @@ class _AttendHistoryPageState extends State<AttendHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Scan History"),
+        title: const Text("ประวัติการแสกน"),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            // Try to pop first, if that doesn't work, go home
+            bool? result = await Navigator.of(context).maybePop();
+            if (result != true) {
+              // If maybePop didn't work, navigate to home
+              context.go('/');
+            }
+          },
+        ),
       ),
       body: Column(
         children: [

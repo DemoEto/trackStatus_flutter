@@ -19,6 +19,8 @@ import '../pages/scan_history/attend_history_page.dart';
 import '../pages/qr_code/qr_checkin_page.dart';
 import 'package:trackstatus_flutter/pages/my_vehicle/vehicle_page.dart';
 import '../pages/admin/admin_management_page.dart';
+import '../pages/home_work/homework_submission_page.dart';
+import '../pages/home_work/homework_assignment_page.dart';
 import '../services/auth_service.dart';
 
 final GoRouter router = GoRouter(
@@ -170,6 +172,15 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationHistoryPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.homework,
+      builder: (context, state) => const HomeworkSubmissionPage(), // For students
+    ),
+    GoRoute(
+      path: '${AppRoutes.homework}/assignment',
+      name: 'homeworkAssignment',
+      builder: (context, state) => const HomeworkAssignmentPage(), // For teachers
     ),
   ],
 );

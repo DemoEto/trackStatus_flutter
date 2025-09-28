@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class AcademicProfilePage extends StatefulWidget {
   const AcademicProfilePage({super.key});
@@ -66,7 +67,21 @@ class _AcademicProfilePageState extends State<AcademicProfilePage> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        appBar: AppBar(title: Text('Acadeemic Profiles'), centerTitle: true),
+        appBar: AppBar(
+          title: Text('ข้อมูลทางวิชาการ'),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              // Try to pop first, if that doesn't work, go home
+              bool? result = await Navigator.of(context).maybePop();
+              if (result != true) {
+                // If maybePop didn't work, navigate to home
+                context.go('/');
+              }
+            },
+          ),
+        ),
         backgroundColor: const Color(0xFFF5F5F5),
         body: SafeArea(
           child: Column(

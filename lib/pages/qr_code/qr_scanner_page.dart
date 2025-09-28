@@ -81,8 +81,19 @@ class _QrScannerPageState extends State<QrScannerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("QR Scanner"),
+        title: const Text("สแกน QR"),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            // Try to pop first, if that doesn't work, go home
+            bool? result = await Navigator.of(context).maybePop();
+            if (result != true) {
+              // If maybePop didn't work, navigate to home
+              context.go('/');
+            }
+          },
+        ),
       ),
       body: Stack(
         children: [
@@ -119,8 +130,22 @@ class _QrScannerPageState extends State<QrScannerPage> {
                       _handleClassCheckin(FirebaseAuth.instance.currentUser?.uid, subjectId);
                     }
                     
-                    // ไปหน้า /qrCheckin
-                    context.push('/qrCheckinScan/${code.split("/")[1]}/${code.split("/")[2]}');
+                    // ไปหน้า /qrCheckin แต่ตรวจสอบว่ามี path parameters ครบ
+                    if (parts.length >= 4) {
+                      // Assuming format is: AppRoutes.qrCheckin/subjectId/date/teacherId
+                      final subjectId = parts[1];
+                      final date = parts[2];
+                      final teacherId = parts[3];
+                      context.push('/qrCheckinScan/$subjectId/$date/$teacherId');
+                    } else {
+                      // Fallback ถ้าไม่มีข้อมูลครบ
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('ข้อมูล QR ไม่ครบถ้วน')),
+                        );
+                      }
+                      context.go('/'); // กลับไปหน้าหลัก
+                    }
                   } 
                   else if (qrType == "school_arrival") {
                     // Handle school arrival QR scan - in this case studentId is passed in the QR
@@ -144,7 +169,8 @@ class _QrScannerPageState extends State<QrScannerPage> {
                       );
                     }
                     if (mounted) {
-                      context.go(AppRoutes.home); // ใช้ go() เพื่อ replace ไป home
+                      // Make sure we're using the correct route name
+                      context.go('/'); // Navigate to root which redirects to appropriate page
                     }
                   }
                   

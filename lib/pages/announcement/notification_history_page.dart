@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../models/notification_model.dart' as notification_model;
 import '../../services/firestore_notification_service.dart';
@@ -17,8 +18,19 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const Text('การแจ้งเตือน'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            // Try to pop first, if that doesn't work, go home
+            bool? result = await Navigator.of(context).maybePop();
+            if (result != true) {
+              // If maybePop didn't work, navigate to home
+              context.go('/');
+            }
+          },
+        ),
       ),
       body: StreamBuilder<List<notification_model.Notification>>(
         stream: _notificationService.getUserNotifications(),

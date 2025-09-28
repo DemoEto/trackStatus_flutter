@@ -35,7 +35,20 @@ class ServicesPage extends StatelessWidget {
 
     if (uid == null) return const Text("ไม่พบผู้ใช้");
     return Scaffold(
-      appBar: AppBar(title: const Text('Services')),
+      appBar: AppBar(
+        title: const Text('บริการ'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            // Try to pop first, if that doesn't work, go home
+            bool? result = await Navigator.of(context).maybePop();
+            if (result != true) {
+              // If maybePop didn't work, navigate to home
+              context.go('/');
+            }
+          },
+        ),
+      ),
       body: StreamBuilder<StudentData?>(
         stream: userService.streamUser(uid),
         builder: (context, snapshot) {

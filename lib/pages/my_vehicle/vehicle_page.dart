@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/vehicle_service.dart';
@@ -171,6 +172,17 @@ class _VehiclePageState extends State<VehiclePage> {
       appBar: AppBar(
         title: const Text("ข้อมูลรถ"),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            // Try to pop first, if that doesn't work, go home
+            bool? result = await Navigator.of(context).maybePop();
+            if (result != true) {
+              // If maybePop didn't work, navigate to home
+              context.go('/');
+            }
+          },
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _vehicleService.getVehicles(),

@@ -599,6 +599,12 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           appBar: AppBar(
             title: const Text("เช็กอินด้วย QR Code"),
             centerTitle: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
           ),
           body: SingleChildScrollView(
             child: Column(
