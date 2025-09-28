@@ -452,8 +452,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ติดตามรถนักเรียน - พนักงานขับรถ'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -506,8 +505,6 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
                       ElevatedButton.icon(
                         onPressed: _handleBusDepartureToSchool,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         icon: const Icon(Icons.directions_bus),
@@ -564,8 +561,6 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
                       ElevatedButton.icon(
                         onPressed: _handleBusArrivalAtSchool,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         icon: const Icon(Icons.school),
@@ -585,8 +580,6 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
                       ElevatedButton.icon(
                         onPressed: _handleBusDepartureToHome,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         icon: const Icon(Icons.home),
@@ -653,8 +646,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ติดตามรถนักเรียน - ผู้ปกครอง'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _getParentBusTrackingStream(),
@@ -703,8 +695,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ติดตามรถนักเรียน - นักเรียน'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _getStudentBusTrackingStream(),
@@ -909,8 +900,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ติดตามรถนักเรียน'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        centerTitle: true,
       ),
       body: const Center(
         child: Text('ไม่มีสิทธิ์ในการเข้าถึงหน้านี้'),

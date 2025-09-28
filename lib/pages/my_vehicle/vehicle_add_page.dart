@@ -88,8 +88,6 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
-        backgroundColor: isPersonal ? Colors.blue : Colors.green,
-        foregroundColor: Colors.white,
         centerTitle: true,
       ),
       body: Padding(
@@ -173,14 +171,8 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(isPersonal ? "บันทึกข้อมูล (ต้องยืนยัน)" : "บันทึกข้อมูล"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isPersonal ? Colors.blue : Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    textStyle: const TextStyle(fontSize: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                  ),
                 ),
               ),
             ],

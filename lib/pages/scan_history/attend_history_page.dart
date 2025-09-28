@@ -73,16 +73,19 @@ class _AttendHistoryPageState extends State<AttendHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ประวัติการแสกน'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        title: const Text("Scan History"),
+        centerTitle: true,
       ),
       body: Column(
         children: [
           // Month selection header
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
-            color: Colors.grey.shade100,
+            decoration: const BoxDecoration(
+              color: Color.fromARGB(255, 197, 211, 232), // Theme color
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(8)),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -91,20 +94,22 @@ class _AttendHistoryPageState extends State<AttendHistoryPage> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
-                TextButton.icon(
+                FilledButton.icon(
                   onPressed: _selectMonth,
-                  icon: const Icon(Icons.calendar_month),
+                  icon: const Icon(Icons.calendar_month, size: 16),
                   label: const Text('เลือกเดือน'),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
-                  ),
+                  style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
                 ),
               ],
             ),
           ),
+          
+          const SizedBox(height: 8),
           
           // History list - different approach for different roles
           Expanded(

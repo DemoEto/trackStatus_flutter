@@ -142,8 +142,8 @@ class _NotificationManagementPageState extends State<NotificationManagementPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('จัดการการแจ้งเตือน'),
-        backgroundColor: Colors.teal,
+        title: const Text('Notification Management'),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -220,9 +220,8 @@ class _NotificationManagementPageState extends State<NotificationManagementPage>
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _sendNotification,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
-                ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
                 child: _isLoading 
                   ? const CircularProgressIndicator()
                   : const Text(

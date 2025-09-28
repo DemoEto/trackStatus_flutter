@@ -1,13 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'firebase_options.dart'; // Firebase configuration
 import 'routes/route_config.dart'; // import GoRouter ที่คุณตั้งไว้
 import 'services/notification_service.dart'; // import Notification service
 import 'services/user_service.dart'; // import UserService
-import 'theme/app_theme.dart'; // import the new app theme
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,7 +58,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'TrackStatus App',
-      theme: AppTheme.theme, // Use the new app theme
+      theme: ThemeData(
+        useMaterial3: false, // Switch to Material 2 to match previous theme
+        textTheme: GoogleFonts.kanitTextTheme(Theme.of(context).textTheme),
+      ), // Use default theme with similar colors
       routerConfig: router, // ✅ ใช้ GoRouter ที่คุณตั้งไว้
     );
   }

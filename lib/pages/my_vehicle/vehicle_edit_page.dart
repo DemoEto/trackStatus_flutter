@@ -93,7 +93,6 @@ class _VehicleEditPageState extends State<VehicleEditPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("แก้ไขข้อมูลรถ"),
-        backgroundColor: Colors.teal,
         centerTitle: true,
       ),
       body: Padding(
@@ -150,7 +149,6 @@ class _VehicleEditPageState extends State<VehicleEditPage> {
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text("บันทึกการแก้ไข"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     textStyle: const TextStyle(fontSize: 18),
                     shape: RoundedRectangleBorder(

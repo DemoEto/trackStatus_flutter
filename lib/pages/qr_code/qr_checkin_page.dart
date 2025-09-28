@@ -36,14 +36,17 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   final uid = FirebaseAuth.instance.currentUser?.uid;
   final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
+  // Stepper variables
+  int _currentStep = 0;
+  
   @override
   void initState() {
     super.initState();
     if (widget.fromQrScan == true) {
       userService.streamUser("$uid");
+      // The addCurrentUserToList function now checks role internally
       addCurrentUserToList();
     }
-    // print('🤣 ${today}');
     _loadSubjects();
   }
 
@@ -79,27 +82,103 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("บันทึกการมาเรียนเรียบร้อย")));
+      
+      // Reset after successful submission
+      setState(() {
+        _currentStep = 0;
+        scannedStudents.clear();
+        selectedSubject = null;
+        qrData = null;
+      });
     }
-
-    setState(() {
-      scannedStudents.clear(); // เคลียร์ list หลังบันทึก
-    });
   }
 
-  onQrScanned(String scannedData) async {
+  Future<void> onQrScanned(String scannedData) async {
     // สมมุติว่า QR เก็บ stdId ไว้
     final attendanceService = AttendanceService();
-    await attendanceService.savePendingAttendance(
-      stdId: scannedData,
-      status: "present",
-      subId: "", // หรือค่า subId ที่คุณมี
-      teacherId: "", // หรือค่า teacherId ที่คุณมี
-    );
+    
+    // Check if current user is authorized to perform attendance using UserService
+    bool isAuthorized = await userService.isAuthorizedForAttendance();
+    
+    if (!isAuthorized) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("คุณไม่มีสิทธิ์ในการสแกนเช็กอิน"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("บันทึกการสแกนเรียบร้อย")));
+    try {
+      await attendanceService.savePendingAttendance(
+        stdId: scannedData,
+        status: "present",
+        subId: selectedSubject ?? "", // Use the selected subject
+        teacherId: FirebaseAuth.instance.currentUser?.uid ?? "", // Use current teacher ID
+      );
+
+      // Add the student to the scanned list if not already there
+      DocumentSnapshot studentDoc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(scannedData)
+          .get();
+          
+      if (studentDoc.exists) {
+        Map<String, dynamic> studentData = studentDoc.data() as Map<String, dynamic>;
+        
+        // Check if student is already in the list
+        bool studentExists = scannedStudents.any((student) => student['uid'] == scannedData);
+        
+        if (!studentExists) {
+          setState(() {
+            scannedStudents.add({
+              'uid': scannedData,
+              'id': studentData['id'] ?? scannedData,
+              'name': studentData['name'] ?? 'ไม่ทราบชื่อ',
+              'status': 'present', // Default to present
+            });
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("เพิ่มนักเรียน ${studentData['name'] ?? scannedData} เรียบร้อย"),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("นักเรียนคนนี้สแกนไปแล้ว"),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("ไม่พบข้อมูลนักเรียน"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("เกิดข้อผิดพลาด: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -152,126 +231,233 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     });
   }
 
-  Widget _formCreateQR() {
+  // First step: Select Subject
+  Widget _step1SelectSubject() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 50.0),
-      child: SizedBox(
-        width: 480,
-        child: Column(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FutureBuilder<QuerySnapshot>(
-            future: FirebaseFirestore.instance.collection('Subjects').get(),
+          const Text(
+            "เลือกวิชา",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          StreamBuilder<String?>(
+            stream: userService.streamUserRole(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator();
+                return const Center(child: CircularProgressIndicator());
               }
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Text("ไม่มีวิชาในระบบ");
+              
+              final role = snapshot.data;
+              
+              if (role != "teacher" && role != "admin") {
+                return const Center(
+                  child: Text("คุณไม่มีสิทธิ์ในการสร้าง QR สำหรับเช็กอิน"),
+                );
               }
-              // สร้าง List ของ Map สำหรับใช้ใน Dropdown
-              List<Map<String, String>> subjects = snapshot.data!.docs.map((
-                doc,
-              ) {
-                final data = doc.data() as Map<String, dynamic>;
-                final subId = data['id']?.toString() ?? "";
-                final subName = data['name']?.toString() ?? "ไม่ระบุชื่อวิชา";
+              
+              return FutureBuilder<QuerySnapshot>(
+                future: FirebaseFirestore.instance.collection('Subjects').get(),
+                builder: (context, subjectSnapshot) {
+                  if (subjectSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (!subjectSnapshot.hasData || subjectSnapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text("ไม่มีวิชาในระบบ"));
+                  }
+                  
+                  // สร้าง List ของ Map สำหรับใช้ใน Dropdown
+                  List<Map<String, String>> subjects = subjectSnapshot.data!.docs.map((
+                    doc,
+                  ) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final subId = data['id']?.toString() ?? "";
+                    final subName = data['name']?.toString() ?? "ไม่ระบุชื่อวิชา";
 
-                return {"id": subId, "name": subName};
-              }).toList();
+                    return {"id": subId, "name": subName};
+                  }).toList();
 
-              return DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: "เลือกวิชา",
-                  border: OutlineInputBorder(),
-                ),
-                value: selectedSubject,
-                items: subjects
-                    .map(
-                      (subject) => DropdownMenuItem(
-                        value: subject['id'], // ✅ value เป็น subId
-                        child: Text(
-                          "${subject['id']!} : ${subject['name']!}",
-                        ), // แสดงชื่อวิชา
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedSubject = value;
-                  });
+                  return DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: "เลือกวิชา",
+                      border: OutlineInputBorder(),
+                    ),
+                    value: selectedSubject,
+                    items: subjects
+                        .map(
+                          (subject) => DropdownMenuItem(
+                            value: subject['id'], // ✅ value เป็น subId
+                            child: Text(
+                              "${subject['id']!} : ${subject['name']!}",
+                            ), // แสดงชื่อวิชา
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSubject = value;
+                      });
+                    },
+                    validator: (value) => value == null ? "กรุณาเลือกวิชา" : null,
+                  );
                 },
-                validator: (value) => value == null ? "กรุณาเลือกวิชา" : null,
               );
             },
           ),
-          SizedBox(height: 20.0),
-          ElevatedButton(
-            onPressed: () async {
-              if (selectedSubject != null) {
-                final user = FirebaseAuth.instance.currentUser;
-                final teacherId = user?.uid ?? "";
-                setState(() {
-                  qrData =
-                      "AppRoutes.qrCheckinScan/${selectedSubject}/${today}/${teacherId}";
-                });
-                print("❤️ $qrData");
-              } else {
-                if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text("กรุณาเลือกวิชา")));
-                }
-              }
-            },
-            child: const Text("สร้าง QR Code"),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  //-- QR Generator (Step 2)
+  Widget _step2ShowQR() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text(
+            "แสดง QR Code",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (qrData != null)
+            Card(
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: PrettyQrView.data(
+                  data: qrData!,
+                  errorCorrectLevel: QrErrorCorrectLevel.H,
+                  decoration: const PrettyQrDecoration(
+                    shape: PrettyQrSmoothSymbol(),
+                    image: PrettyQrDecorationImage(
+                      image: AssetImage('assets/images/login2.png'),
+                      position: PrettyQrDecorationImagePosition.embedded,
+                      padding: EdgeInsets.all(12),
+                    ),
+                    quietZone: PrettyQrQuietZone.modules(3),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 20),
+          Text(
+            "ให้นักเรียนสแกน QR Code นี้เพื่อเช็กอิน",
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
           ),
         ],
       ),
-      )
+    );
+  }
+
+  // Step 3: Summary
+  Widget _step3Summary() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "สรุปรายชื่อนักเรียน",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Header Row
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: const [
+                Expanded(flex: 3, child: Text("ชื่อ-นามสกุล", style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(child: Center(child: Text("มา", style: TextStyle(fontWeight: FontWeight.bold)))),
+                Expanded(child: Center(child: Text("ลากิจ", style: TextStyle(fontWeight: FontWeight.bold)))),
+                Expanded(child: Center(child: Text("ขาด", style: TextStyle(fontWeight: FontWeight.bold)))),
+              ],
+            ),
+          ),
+          const Divider(thickness: 1, color: Colors.grey),
+          
+          // Student Rows
+          if (scannedStudents.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Text("ยังไม่มีนักเรียนสแกนเข้ามา"),
+              ),
+            ),
+          ...scannedStudents.map((s) => _buildStudentRow(s)).toList(),
+        ],
+      ),
     );
   }
 
   //-- QR Generator
   Widget _qrGenerator(String qrData) {
-  return Padding(
-    padding: const EdgeInsets.all(10),
-    child: SizedBox(
-      width: 480, // ✅ กำหนดขนาดเล็กลง
-      height: 480,
-      child: PrettyQrView.data(
-        data: qrData,
-        errorCorrectLevel: QrErrorCorrectLevel.H,
-        decoration: const PrettyQrDecoration(
-          shape: PrettyQrSmoothSymbol(),
-          image: PrettyQrDecorationImage(
-            image: AssetImage('assets/images/login2.png'),
-            position: PrettyQrDecorationImagePosition.embedded,
-            padding: EdgeInsets.all(12), // ปรับ padding ให้เล็กลง
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: SizedBox(
+        width: 480, // ✅ กำหนดขนาดเล็กลง
+        height: 480,
+        child: PrettyQrView.data(
+          data: qrData,
+          errorCorrectLevel: QrErrorCorrectLevel.H,
+          decoration: const PrettyQrDecoration(
+            shape: PrettyQrSmoothSymbol(),
+            image: PrettyQrDecorationImage(
+              image: AssetImage('assets/images/login2.png'),
+              position: PrettyQrDecorationImagePosition.embedded,
+              padding: EdgeInsets.all(12), // ปรับ padding ให้เล็กลง
+            ),
+            quietZone: PrettyQrQuietZone.modules(3), // ลด quietZone ลง
           ),
-          quietZone: PrettyQrQuietZone.modules(3), // ลด quietZone ลง
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
 
   Future<void> addCurrentUserToList() async {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // ตรวจว่าคนนี้ยังไม่อยู่ใน list
-    final exists = scannedStudents.any((s) => s['uid'] == user.uid);
-    if (exists) return;
-
-    final doc = await FirebaseFirestore.instance
+    // Check the current user's role to prevent teachers from being added to student list
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
         .collection('Users')
         .doc(user.uid)
         .get();
 
-    if (!doc.exists) return;
+    if (!userDoc.exists) return;
 
-    final data = doc.data()!;
+    Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+    String? userRole = userData['role']?.toString();
+
+    // Don't add teachers or admins to the student attendance list
+    if (userRole == 'teacher' || userRole == 'admin') {
+      return;
+    }
+
+    // ตรวจว่าคนนี้ยังไม่อยู่ใน list
+    final exists = scannedStudents.any((s) => s['uid'] == user.uid);
+    if (exists) return;
+
+    final data = userData;
     setState(() {
       scannedStudents.add({
         'uid': user.uid,
@@ -381,67 +567,209 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     final userService = UserService();
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const Text("ไม่พบผู้ใช้");
-    return Scaffold(
-      appBar: AppBar(title: const Text("QR & Check-In")),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            StreamBuilder<String?>(
-              stream: userService.streamUserRole(), // ดึง role จาก service
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SizedBox.shrink(); // ระหว่างโหลดไม่ต้องโชว์อะไร
-                }
-
-                final role = snapshot.data;
-
-                if (role == "teacher" || role == "admin")
-                  return _formCreateQR();
-
-                return const SizedBox.shrink();
-              },
+    
+    // Check user role before building the page
+    return StreamBuilder<String?>(
+      stream: userService.streamUserRole(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        
+        final role = snapshot.data;
+        
+        if (role != "teacher" && role != "admin") {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text("เช็กอินด้วย QR Code"),
+              centerTitle: true,
             ),
-            // TODO: show qr
-            if (qrData != null) _qrGenerator(qrData!),
-
-            // Header Row
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: const [
-                  Expanded(flex: 3, child: SizedBox.shrink()),
-                  Expanded(child: Center(child: Text("มา"))),
-                  Expanded(child: Center(child: Text("ลา"))),
-                  Expanded(child: Center(child: Text("ขาด"))),
-                ],
+            body: const Center(
+              child: Text(
+                "คุณไม่มีสิทธิ์ในการสร้าง QR สำหรับเช็กอิน",
+                style: TextStyle(fontSize: 16, color: Colors.red),
               ),
             ),
-            Divider(thickness: 1, color: Colors.grey.shade400),
+          );
+        }
+        
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text("เช็กอินด้วย QR Code"),
+            centerTitle: true,
+          ),
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Stepper header
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildStepIndicator(0, "เลือกวิชา"),
+                      _buildStepConnector(0, 1),
+                      _buildStepIndicator(1, "แสดง QR"),
+                      _buildStepConnector(1, 2),
+                      _buildStepIndicator(2, "สรุป"),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                
+                // Content based on current step
+                switch (_currentStep) {
+                  0 => _step1SelectSubject(),
+                  1 => _step2ShowQR(),
+                  2 => _step3Summary(),
+                  _ => _step1SelectSubject(), // fallback
+                },
+              ],
+            ),
+          ),
+          // Move navigation buttons to bottomNavigationBar
+          bottomNavigationBar: _buildBottomNavigation(),
+        );
+      },
+    );
+  }
+  
+  // Build bottom navigation with step navigation buttons
+  Widget _buildBottomNavigation() {
+    // Back button - only show when not on first step
+    Widget backButton = _currentStep > 0
+        ? Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _currentStep--;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text("ย้อนกลับ"),
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
 
-            // Student Row
-            ...scannedStudents.map((s) => _buildStudentRow(s)).toList(),
-          ],
-        ),
+    // Next/Submit button - text changes based on step
+    Widget nextButton = _currentStep < 2
+        ? Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  // Validation for step 0 (subject selection)
+                  if (_currentStep == 0 && selectedSubject == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("กรุณาเลือกวิชา")),
+                    );
+                    return;
+                  }
+
+                  setState(() {
+                    _currentStep++;
+
+                    // Generate QR code when moving to step 2
+                    if (_currentStep == 1) {
+                      final user = FirebaseAuth.instance.currentUser;
+                      final teacherId = user?.uid ?? "";
+                      qrData = "AppRoutes.qrCheckinScan/${selectedSubject}/${today}/${teacherId}";
+                    }
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text("ถัดไป"),
+              ),
+            ),
+          )
+        : Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: ElevatedButton(
+                onPressed: scannedStudents.isEmpty ? null : submitAttendance,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text("ยืนยัน"),
+              ),
+            ),
+          );
+
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      decoration: const BoxDecoration(
+        color: Color.fromARGB(255, 197, 211, 232),
+        border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
       ),
-      floatingActionButton: StreamBuilder<String?>(
-        stream: userService.streamUserRole(), // ดึง role จาก service
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox.shrink(); // ระหว่างโหลดไม่ต้องโชว์อะไร
-          }
-
-          final role = snapshot.data;
-
-          if (role == "teacher") {
-            return FloatingActionButton.extended(
-              onPressed: submitAttendance,
-              label: const Text("ยืนยัน"),
-              icon: const Icon(Icons.check),
-            );
-          }
-          return const SizedBox.shrink(); // ถ้าไม่ใช่ครู -> ไม่แสดงปุ่ม
-        },
-      ), // ไม่แสดงปุ่ม
+      child: _currentStep == 0
+          // If on first step (no back button), show next button as full width
+          ? nextButton
+          // If on other steps (with back and next/submit buttons), show both buttons split
+          : Row(
+              children: [
+                backButton,
+                nextButton,
+              ],
+            ),
+    );
+  }
+  
+  Widget _buildStepIndicator(int index, String title) {
+    bool isActive = index == _currentStep;
+    bool isCompleted = index < _currentStep;
+    
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: isActive ? Colors.deepPurple : isCompleted ? Colors.green : Colors.grey,
+              shape: BoxShape.circle,
+            ),
+            child: isCompleted
+                ? const Icon(Icons.check, color: Colors.white, size: 20)
+                : Text(
+                    "${index + 1}",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: isActive ? Colors.deepPurple : isCompleted ? Colors.green : Colors.grey,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStepConnector(int fromStep, int toStep) {
+    bool isCompleted = toStep <= _currentStep;
+    
+    return Expanded(
+      child: Container(
+        height: 2,
+        color: isCompleted ? Colors.green : Colors.grey,
+      ),
     );
   }
 }

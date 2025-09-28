@@ -14,11 +14,27 @@ class AdminManagementPage extends StatelessWidget {
     required String routeName,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Card(
+        elevation: 3,
         child: ListTile(
-          leading: Icon(icon),
-          title: Text(title),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.deepPurple),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
           onTap: () => context.push(routeName),
         ),
       ),
@@ -28,8 +44,12 @@ class AdminManagementPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Management System')),
+      appBar: AppBar(
+        title: const Text('Admin Management'),
+        centerTitle: true,
+      ),
       body: ListView(
+        padding: const EdgeInsets.all(16.0),
         children: [
           _buildCard(
             context: context,

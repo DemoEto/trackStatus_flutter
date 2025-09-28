@@ -19,8 +19,6 @@ class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('การบ้านที่ต้องส่ง'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _getCurrentUserAssignments(),

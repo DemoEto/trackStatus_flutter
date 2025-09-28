@@ -94,6 +94,32 @@ class UserService {
     return const Stream.empty();
   }
   
+  // Check if current user is authorized to perform attendance
+  Future<bool> isAuthorizedForAttendance() async {
+    User? currentUser = _auth.currentUser;
+    if (currentUser == null) return false;
+    
+    try {
+      DocumentSnapshot userDoc = await _firestore
+          .collection('Users')
+          .doc(currentUser.uid)
+          .get();
+          
+      if (!userDoc.exists) {
+        return false;
+      }
+      
+      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+      String? userRole = userData['role']?.toString();
+      
+      // Only allow teachers and admins to perform attendance
+      return userRole == 'teacher' || userRole == 'admin';
+    } catch (e) {
+      print('Error checking attendance authorization: $e');
+      return false;
+    }
+  }
+  
   // Start attendance notification service (placeholder)
   void startAttendanceNotificationService() {
     // This is a placeholder for now - implementation depends on the specific service

@@ -48,7 +48,7 @@ class _VehiclePageState extends State<VehiclePage> {
             child: const Text("ยกเลิก"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(),
             onPressed: () {
               Navigator.pop(context);
               _deleteVehicle(vehicleId, imageUrl);
@@ -170,7 +170,6 @@ class _VehiclePageState extends State<VehiclePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("ข้อมูลรถ"),
-        backgroundColor: Colors.teal,
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -288,7 +287,6 @@ class _VehiclePageState extends State<VehiclePage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal,
         child: const Icon(Icons.add),
         onPressed: _showVehicleTypeSelection,
       ),

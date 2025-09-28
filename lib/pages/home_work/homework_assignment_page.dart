@@ -179,9 +179,8 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('มอบหมายการบ้าน'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        title: const Text('Homework Assignment'),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -265,10 +264,7 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
                         onPressed: _selectStudents,
                         icon: const Icon(Icons.people),
                         label: const Text('เลือกนักเรียน'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepPurple,
-                          foregroundColor: Colors.white,
-                        ),
+                        style: ElevatedButton.styleFrom(),
                       ),
                     ],
                   ),
@@ -280,8 +276,6 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
               ElevatedButton(
                 onPressed: _assignHomework,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: const Text('มอบหมายการบ้าน', style: TextStyle(fontSize: 16)),
@@ -354,10 +348,7 @@ class _StudentSelectionDialogState extends State<_StudentSelectionDialog> {
           onPressed: () {
             Navigator.of(context).pop(selectedStudents);
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepPurple,
-            foregroundColor: Colors.white,
-          ),
+          style: ElevatedButton.styleFrom(),
           child: const Text('ตกลง'),
         ),
       ],

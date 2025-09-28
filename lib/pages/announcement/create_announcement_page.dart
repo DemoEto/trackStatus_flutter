@@ -86,9 +86,8 @@ class _CreateAnnouncementPageState extends State<CreateAnnouncementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('สร้างแจ้งเตือนประชาสัมพันธ์'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        title: const Text('Create Announcement'),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -190,14 +189,13 @@ class _CreateAnnouncementPageState extends State<CreateAnnouncementPage> {
                 ],
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
+              ElevatedButton.icon(
                 onPressed: _createAnnouncement,
+                icon: const Icon(Icons.send),
+                label: const Text('สร้างแจ้งเตือน'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
-                child: const Text('สร้างแจ้งเตือนประชาสัมพันธ์'),
               ),
             ],
           ),

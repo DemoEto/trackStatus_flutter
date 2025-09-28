@@ -17,9 +17,8 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ประวัติแจ้งเตือน'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        title: const Text('Notifications'),
+        centerTitle: true,
       ),
       body: StreamBuilder<List<notification_model.Notification>>(
         stream: _notificationService.getUserNotifications(),

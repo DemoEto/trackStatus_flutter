@@ -80,74 +80,125 @@ class _QrScannerPageState extends State<QrScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: MobileScanner(
-        controller: _controller,
-        onDetect: (capture) async {
-          if (_scanned) return; // กันซ้ำ
-          _scanned = true;
+      appBar: AppBar(
+        title: const Text("QR Scanner"),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: _controller,
+            onDetect: (capture) async {
+              if (_scanned) return; // กันซ้ำ
+              _scanned = true;
 
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final barcode in barcodes) {
-            final String? code = barcode.rawValue;
-            if (code != null) {
-              // หยุดกล้องทันที
-              _controller.stop();
-              
-              debugPrint('👽${code}');
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(code)),
-                );
-              }
-              // Determine the type of QR code and trigger appropriate notification
-              final parts = code.split("/");
-              final qrType = parts[0];
-              
-              if (qrType == "AppRoutes.qrCheckin") {
-                // Handle class check-in
-                if (parts.length >= 3) {
-                  final subjectId = parts[1];
-                  final date = parts[2];
+              final List<Barcode> barcodes = capture.barcodes;
+              for (final barcode in barcodes) {
+                final String? code = barcode.rawValue;
+                if (code != null) {
+                  // หยุดกล้องทันที
+                  _controller.stop();
                   
-                  // Get current user as the student and fetch data
-                  _handleClassCheckin(FirebaseAuth.instance.currentUser?.uid, subjectId);
-                }
-                
-                // ไปหน้า /qrCheckin
-                context.push('/qrCheckinScan/${code.split("/")[1]}/${code.split("/")[2]}');
-              } 
-              else if (qrType == "school_arrival") {
-                // Handle school arrival QR scan - in this case studentId is passed in the QR
-                if (parts.length >= 2) {
-                  final studentId = parts[1];
-                  _handleSchoolArrival(studentId);
+                  debugPrint('👽${code}');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(code)),
+                    );
+                  }
+                  // Determine the type of QR code and trigger appropriate notification
+                  final parts = code.split("/");
+                  final qrType = parts[0];
+                  
+                  if (qrType == "AppRoutes.qrCheckin") {
+                    // Handle class check-in
+                    if (parts.length >= 3) {
+                      final subjectId = parts[1];
+                      final date = parts[2];
+                      
+                      // Get current user as the student and fetch data
+                      _handleClassCheckin(FirebaseAuth.instance.currentUser?.uid, subjectId);
+                    }
+                    
+                    // ไปหน้า /qrCheckin
+                    context.push('/qrCheckinScan/${code.split("/")[1]}/${code.split("/")[2]}');
+                  } 
+                  else if (qrType == "school_arrival") {
+                    // Handle school arrival QR scan - in this case studentId is passed in the QR
+                    if (parts.length >= 2) {
+                      final studentId = parts[1];
+                      _handleSchoolArrival(studentId);
+                    }
+                  }
+                  else if (qrType == "school_departure") {
+                    // Handle school departure QR scan - in this case studentId is passed in the QR
+                    if (parts.length >= 2) {
+                      final studentId = parts[1];
+                      _handleSchoolDeparture(studentId);
+                    }
+                  }
+                  else {
+                    // ถ้าไม่เจอ path ให้แจ้งเตือนและไป home
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('ไม่พบเส้นทาง ไปหน้าแรกแทน')),
+                      );
+                    }
+                    if (mounted) {
+                      context.go(AppRoutes.home); // ใช้ go() เพื่อ replace ไป home
+                    }
+                  }
+                  
+                  // Reset the scan flag after a delay to allow new scans
+                  await Future.delayed(const Duration(seconds: 2));
+                  _scanned = false;
                 }
               }
-              else if (qrType == "school_departure") {
-                // Handle school departure QR scan - in this case studentId is passed in the QR
-                if (parts.length >= 2) {
-                  final studentId = parts[1];
-                  _handleSchoolDeparture(studentId);
-                }
-              }
-              else {
-                // ถ้าไม่เจอ path ให้แจ้งเตือนและไป home
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('ไม่พบเส้นทาง ไปหน้าแรกแทน')),
-                  );
-                }
-                if (mounted) {
-                  context.go(AppRoutes.home); // ใช้ go() เพื่อ replace ไป home
-                }
-              }
-              
-              // Reset the scan flag after a delay to allow new scans
-              await Future.delayed(const Duration(seconds: 2));
-              _scanned = false;
-            }
-          }
-        },
+            },
+          ),
+          // Scanner overlay with instruction
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 150,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                ),
+              ),
+              child: const Center(
+                child: Text(
+                  'วาง QR Code ไว้ในกรอบ',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Scanner frame in the center
+          const Center(
+            child: SizedBox(
+              width: 250,
+              height: 250,
+              child: ColoredBox(
+                color: Colors.transparent,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.fromBorderSide(
+                      BorderSide(width: 3, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

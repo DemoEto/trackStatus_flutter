@@ -102,9 +102,8 @@ class _AddattendancePageState extends State<AddattendancePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('เพิ่มข้อมูลการมาเรียน'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        title: const Text('Add Attendance'),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -246,9 +245,8 @@ class _AddattendancePageState extends State<AddattendancePage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveAttendance,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                  ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
                   child: _isLoading
                       ? const CircularProgressIndicator()
                       : const Text(

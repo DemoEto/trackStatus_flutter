@@ -218,132 +218,137 @@ class _LoginPageState extends State<LoginPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
-      body: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: screenHeight),
-          child: Container(
-            width: screenWidth,
-            decoration: const BoxDecoration(
-              color: Color.fromARGB(255, 197, 211, 232),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                SizedBox(height: screenHeight * 0.04),
-                SizedBox(
-                  height: screenHeight * 0.2,
-                  width: screenWidth * 0.6,
-                  child: Image.asset("assets/images/login2.png"),
-                ),
-                SizedBox(height: screenHeight * 0.03),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          isLogin ? "Hello" : "Create Account",
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          isLogin
-                              ? "Please Login to Your Account"
-                              : "Create a new account",
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 5),
-                        _entryField(
-                          context,
-                          "Email Address",
-                          _controllerEmail,
-                          icon: FontAwesomeIcons.envelope,
-                        ),
-                        const SizedBox(height: 5),
-                        _entryField(
-                          context,
-                          "Password",
-                          _controllerPassword,
-                          isPassword: true,
-                          icon: FontAwesomeIcons.eyeSlash,
-                        ),
-                        if (!isLogin)
-                          Column(
-                            children: [
-                              const SizedBox(height: 5),
-                              _entryField(
-                                context,
-                                "Confirm Password",
-                                _controllerConfirmPassword,
-                                isPassword: true,
-                                icon: FontAwesomeIcons.eye,
-                              ),
-                              const SizedBox(height: 5),
-                              _entryField(
-                                context,
-                                "First - Last name",
-                                _controllerName,
-                                icon: FontAwesomeIcons.user,
-                              ),
-                            ],
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              if (isLogin)
-                                TextButton(
-                                  onPressed: () {
-                                    // TODO: implement Forget Password logic
-                                  },
-                                  child: const Text(
-                                    "Forget Password",
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        _errorMessage(),
-                        const SizedBox(height: 15),
-                        _submitButton(context),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "Or Login using Social Media Account",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 10),
-                        _socialLoginButtons(context),
-                        _loginOrRegisterButton(),
-                      ],
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          color: Color.fromARGB(255, 197, 211, 232),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              width: screenWidth * 0.9,
+              constraints: BoxConstraints(
+                maxWidth: 400, // Maximum width for better UX on large screens
+                maxHeight: screenHeight * 0.85, // Limit height for better UX
+              ),
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Align(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      height: 120,
+                      width: 120,
+                      child: Image(
+                        image: AssetImage("assets/images/login2.png"),
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  Text(
+                    isLogin ? "Hello" : "Create Account",
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isLogin
+                        ? "Please Login to Your Account"
+                        : "Create a new account",
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  _entryField(
+                    context,
+                    "Email Address",
+                    _controllerEmail,
+                    icon: FontAwesomeIcons.envelope,
+                  ),
+                  const SizedBox(height: 10),
+                  _entryField(
+                    context,
+                    "Password",
+                    _controllerPassword,
+                    isPassword: true,
+                    icon: FontAwesomeIcons.eyeSlash,
+                  ),
+                  if (!isLogin) ...[
+                    const SizedBox(height: 10),
+                    _entryField(
+                      context,
+                      "Confirm Password",
+                      _controllerConfirmPassword,
+                      isPassword: true,
+                      icon: FontAwesomeIcons.eye,
+                    ),
+                    const SizedBox(height: 10),
+                    _entryField(
+                      context,
+                      "Full Name",
+                      _controllerName,
+                      icon: FontAwesomeIcons.user,
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  if (isLogin)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          // TODO: implement Forget Password logic
+                        },
+                        child: const Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  _errorMessage(),
+                  const SizedBox(height: 20),
+                  _submitButton(context),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Or sign in with",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 15),
+                  _socialLoginButtons(context),
+                  const SizedBox(height: 15),
+                  _loginOrRegisterButton(),
+                ],
+              ),
             ),
           ),
         ),
