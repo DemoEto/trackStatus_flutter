@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:trackstatus_flutter/services/notification_service.dart';
 
 import 'firebase_options.dart'; // Firebase configuration
 import 'routes/route_config.dart'; // import GoRouter ที่คุณตั้งไว้

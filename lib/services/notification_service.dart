@@ -1,5 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -31,6 +33,20 @@ class NotificationService {
         iOS: DarwinInitializationSettings(), // สำหรับ iOS
       ),
     );
+    
+    // On iOS, ensure APNS token is properly initialized
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
+        String? apnsToken = await _firebaseMessaging.getAPNSToken();
+        if (apnsToken != null) {
+          print('APNS Token retrieved: $apnsToken');
+        } else {
+          print('APNS Token not available yet. This is normal during initial app startup.');
+        }
+      } catch (e) {
+        print('Error getting APNS token: $e');
+      }
+    }
   }
 
   // Request notification permission

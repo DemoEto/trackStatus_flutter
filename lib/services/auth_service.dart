@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../utils/notification_helper.dart';
@@ -41,12 +42,29 @@ class AuthService extends ChangeNotifier {
   // Update user's FCM token when they log in
   Future<void> _updateUserToken(String userId) async {
     try {
+      // Setup token refresh listener for automatic updates
+      _firebaseMessaging.onTokenRefresh.listen((token) {
+        print('FCM token refreshed for user $userId: $token');
+        NotificationHelper.updateUserToken(userId, token);
+      }).onError((error) {
+        print('Error listening for token refresh for user $userId: $error');
+      });
+      
+      // Get current token (on iOS, this may initially fail if APNS token isn't ready)
       String? token = await _firebaseMessaging.getToken();
       if (token != null) {
+        print('FCM token retrieved for user $userId: $token');
         await NotificationHelper.updateUserToken(userId, token);
+      } else {
+        print('FCM token not available yet for user $userId. Waiting for token refresh.');
       }
     } catch (e) {
       print('Error updating token for user $userId: $e');
+      // For iOS-specific APNS error, provide a more descriptive message
+      if (e.toString().contains('apns-token-not-set')) {
+        print('This error typically occurs on iOS when APNS token is not ready yet. '
+            'The token refresh listener will handle the token once it becomes available.');
+      }
     }
   }
 
