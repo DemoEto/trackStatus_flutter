@@ -33,25 +33,25 @@ final GoRouter router = GoRouter(
     if (!loggedIn && !goingToLogin) return AppRoutes.login;
     if (context.mounted && loggedIn && goingToLogin) {
       // Get user role and redirect accordingly
-      final user = authService.currentUser;
-      if (user != null) {
-        String? userRole = await authService.getUserRole(user.uid);
+      // final user = authService.currentUser;
+      // if (user != null) {
+      //   String? userRole = await authService.getUserRole(user.uid);
         
-        switch (userRole) {
-          case 'admin':
-            return AppRoutes.adminManagement;
-          case 'teacher':
-            return AppRoutes.qrCheckin; // หรือหน้าที่เหมาะสมสำหรับครู
-          case 'student':
-            return AppRoutes.home; // หรือหน้าที่เหมาะสมสำหรับนักเรียน
-          case 'parent':
-            return AppRoutes.attendHistory; // หรือหน้าที่เหมาะสมสำหรับผู้ปกครอง
-          case 'driver':
-            return AppRoutes.followVehicle; // หรือหน้าที่เหมาะสมสำหรับพนักงานขับรถ
-          default:
-            return AppRoutes.home; // ค่าเริ่มต้น
-        }
-      }
+      //   switch (userRole) {
+      //     case 'admin':
+      //       return AppRoutes.adminManagement;
+      //     case 'teacher':
+      //       return AppRoutes.qrCheckin; // หรือหน้าที่เหมาะสมสำหรับครู
+      //     case 'student':
+      //       return AppRoutes.home; // หรือหน้าที่เหมาะสมสำหรับนักเรียน
+      //     case 'parent':
+      //       return AppRoutes.attendHistory; // หรือหน้าที่เหมาะสมสำหรับผู้ปกครอง
+      //     case 'driver':
+      //       return AppRoutes.followVehicle; // หรือหน้าที่เหมาะสมสำหรับพนักงานขับรถ
+      //     default:
+      //       return AppRoutes.home; // ค่าเริ่มต้น
+      //   }
+      // }
       return AppRoutes.home;
     }
 
