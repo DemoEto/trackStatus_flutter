@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 
 import '../../routes/app_route.dart';
+import '../../services/attendance_service.dart';
 import '../../utils/notification_helper.dart';
 
 class QrScannerPage extends StatefulWidget {
@@ -132,11 +133,33 @@ class _QrScannerPageState extends State<QrScannerPage> {
                     
                     // ไปหน้า /qrCheckin แต่ตรวจสอบว่ามี path parameters ครบ
                     if (parts.length >= 4) {
-                      // Assuming format is: AppRoutes.qrCheckin/subjectId/date/teacherId
+                      // Assuming format is: AppRoutes.qrCheckin/subjectId/date/teacherId/allowLateScans
                       final subjectId = parts[1];
                       final date = parts[2];
                       final teacherId = parts[3];
-                      context.push('/qrCheckinScan/$subjectId/$date/$teacherId');
+                      bool allowLateScans = false;
+                      
+                      if (parts.length >= 5) {
+                        allowLateScans = parts[4].toLowerCase() == 'true';
+                      }
+                      
+                      // Save pending attendance with scan time
+                      final attendanceService = AttendanceService();
+                      String? studentId = FirebaseAuth.instance.currentUser?.uid;
+                      if (studentId != null) {
+                        try {
+                          await attendanceService.savePendingAttendance(
+                            stdId: studentId,
+                            subId: subjectId,
+                            teacherId: teacherId,
+                            scanTime: DateTime.now(), // Pass scan time
+                          );
+                        } catch (e) {
+                          debugPrint('Error saving pending attendance: $e');
+                        }
+                      }
+                      
+                      context.push('/qrCheckinScan/$subjectId/$date/$teacherId/$allowLateScans');
                     } else {
                       // Fallback ถ้าไม่มีข้อมูลครบ
                       if (mounted) {

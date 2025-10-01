@@ -13,11 +13,15 @@ class QrCheckinPage extends StatefulWidget {
   final bool fromQrScan;
   final String subId;
   final String date;
+  final String teacherId;
+  final bool allowLateScans; // เพิ่มตัวแปรสำหรับอนุญาตการสแกนซ้ำของนักเรียนสาย
   const QrCheckinPage({
     super.key,
     this.fromQrScan = false,
     required this.subId,
     required this.date,
+    this.teacherId = '',
+    this.allowLateScans = false, // Default to false
   });
 
   @override
@@ -27,6 +31,7 @@ class QrCheckinPage extends StatefulWidget {
 class _QrCheckinPageState extends State<QrCheckinPage> {
   String? qrData;
   final String? _status = "present"; // ค่าเริ่มต้น = มา
+  bool _allowLateScans = false; // ตัวแปรสำหรับอนุญาตการสแกนซ้ำสำหรับนักเรียนสาย
   Map<String, dynamic>? studentData; // เก็บข้อมูลนักเรียนจาก Firestore
   List<Map<String, dynamic>> scannedStudents = []; // เก็บนักเรียนที่สแกนเข้ามา
 
@@ -113,11 +118,12 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     }
 
     try {
+      // Call savePendingAttendance without status parameter (status will be determined by time)
       await attendanceService.savePendingAttendance(
         stdId: scannedData,
-        status: "present",
         subId: selectedSubject ?? "", // Use the selected subject
         teacherId: FirebaseAuth.instance.currentUser?.uid ?? "", // Use current teacher ID
+        scanTime: DateTime.now(), // Pass scan time
       );
 
       // Add the student to the scanned list if not already there
@@ -133,20 +139,35 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
         bool studentExists = scannedStudents.any((student) => student['uid'] == scannedData);
         
         if (!studentExists) {
+          // Get status from PendingAttendance collection
+          QuerySnapshot pendingSnapshot = await FirebaseFirestore.instance
+              .collection('PendingAttendance')
+              .where('studentId', isEqualTo: scannedData)
+              .where('subjectId', isEqualTo: selectedSubject)
+              .orderBy('createdAt', descending: true)
+              .limit(1)
+              .get();
+              
+          String status = 'present'; // Default
+          if (pendingSnapshot.docs.isNotEmpty) {
+            status = pendingSnapshot.docs.first.get('status') ?? 'present';
+          }
+        
           setState(() {
             scannedStudents.add({
               'uid': scannedData,
               'id': studentData['id'] ?? scannedData,
               'name': studentData['name'] ?? 'ไม่ทราบชื่อ',
-              'status': 'present', // Default to present
+              'status': status, // Use status determined by time
             });
           });
           
           if (mounted) {
+            String statusText = status == 'present' ? 'มาเรียน' : (status == 'late' ? 'มาเรียนสาย' : 'ขาดเรียน');
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("เพิ่มนักเรียน ${studentData['name'] ?? scannedData} เรียบร้อย"),
-                backgroundColor: Colors.green,
+                content: Text("เพิ่มนักเรียน ${studentData['name'] ?? scannedData} - $statusText เรียบร้อย"),
+                backgroundColor: status == 'present' ? Colors.green : (status == 'late' ? Colors.orange : Colors.red),
               ),
             );
           }
@@ -164,9 +185,9 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("ไม่พบข้อมูลนักเรียน"),
-              backgroundColor: Colors.red,
-            ),
+                content: Text("ไม่พบข้อมูลนักเรียน"),
+                backgroundColor: Colors.red,
+              ),
           );
         }
       }
@@ -311,6 +332,45 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
             },
           ),
           const SizedBox(height: 20),
+          // Add option for re-opening QR for late students
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "ตัวเลือกพิเศษ",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _allowLateScans,
+                      onChanged: (value) {
+                        setState(() {
+                          _allowLateScans = value ?? false;
+                        });
+                      },
+                    ),
+                    const Text("อนุญาตให้นักเรียนที่มาสายสแกน QR ซ้ำได้"),
+                  ],
+                ),
+                if (_allowLateScans)
+                  const Text(
+                    "ระบบจะเปิด QR ให้นักเรียนที่มาสายสามารถสแกนอีกครั้งได้",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -687,7 +747,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
                     if (_currentStep == 1) {
                       final user = FirebaseAuth.instance.currentUser;
                       final teacherId = user?.uid ?? "";
-                      qrData = "AppRoutes.qrCheckinScan/${selectedSubject}/${today}/${teacherId}";
+                      qrData = "AppRoutes.qrCheckinScan/${selectedSubject}/${today}/${teacherId}/${_allowLateScans}";
                     }
                   });
                 },

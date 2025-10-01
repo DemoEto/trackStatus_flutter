@@ -71,12 +71,27 @@ class AttendanceService {
     await batch.commit();
   }
 
-  // Save pending attendance (the original functionality)
+  // Determine attendance status based on time
+  String _determineStatus(DateTime scanTime, DateTime classStartTime) {
+    Duration timeDiff = scanTime.difference(classStartTime);
+    Duration allowedLateTime = const Duration(minutes: 15);
+    Duration allowedAbsentTime = const Duration(minutes: 30);
+
+    if (timeDiff.inMinutes <= allowedLateTime.inMinutes) {
+      return 'present';  // On time
+    } else if (timeDiff.inMinutes <= allowedAbsentTime.inMinutes) {
+      return 'late';  // Late
+    } else {
+      return 'absent'; // Absent
+    }
+  }
+
+  // Save pending attendance with time-based status logic
   Future<void> savePendingAttendance({
     required String stdId,
-    required String status,
     required String subId,
     required String teacherId,
+    DateTime? scanTime,
   }) async {
     try {
       // Get student data
@@ -102,7 +117,24 @@ class AttendanceService {
       if (currentUser == null) {
         throw Exception('No authenticated user found');
       }
-      
+
+      // Determine the status based on scan time if provided
+      String status = 'present'; // default
+      DateTime scanTimeToUse = scanTime ?? DateTime.now();
+      String date = scanTimeToUse.toIso8601String().split('T')[0]; // YYYY-MM-DD format
+
+      // Set class start time (assuming 08:00 AM as class start time)
+      DateTime classStartTime = DateTime(
+        scanTimeToUse.year,
+        scanTimeToUse.month,
+        scanTimeToUse.day,
+        8, // Assuming class starts at 8 AM
+        0,
+        0,
+      );
+
+      status = _determineStatus(scanTimeToUse, classStartTime);
+
       // Create pending attendance record
       await _firestore.collection('PendingAttendance').add({
         'studentId': stdId,
@@ -113,7 +145,9 @@ class AttendanceService {
         'subjectName': subjectData['name'] ?? '',
         'teacherId': teacherId.isNotEmpty ? teacherId : currentUser.uid,
         'createdAt': FieldValue.serverTimestamp(),
-        'date': DateTime.now().toIso8601String().split('T')[0], // YYYY-MM-DD format
+        'scannedAt': Timestamp.fromDate(scanTimeToUse),
+        'classStartTime': Timestamp.fromDate(classStartTime),
+        'date': date, // YYYY-MM-DD format
         'isProcessed': false,
       });
     } catch (e) {
@@ -131,11 +165,50 @@ class AttendanceService {
         .snapshots();
   }
 
+  // Get pending attendance records for a specific subject and date
+  Stream<QuerySnapshot> getPendingAttendanceForSubjectDate(String subjectId, String date) {
+    return _firestore
+        .collection('PendingAttendance')
+        .where('subjectId', isEqualTo: subjectId)
+        .where('date', isEqualTo: date)
+        .where('isProcessed', isEqualTo: false)
+        .orderBy('scannedAt', descending: true)
+        .snapshots();
+  }
+
   // Mark pending attendance as processed
   Future<void> markAsProcessed(String attendanceId) async {
     await _firestore.collection('PendingAttendance').doc(attendanceId).update({
       'isProcessed': true,
       'processedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  // Get attendance records by status for a specific subject and date
+  Stream<QuerySnapshot> getAttendanceByStatus(String subjectId, String date, String status) {
+    return _firestore
+        .collection('PendingAttendance')
+        .where('subjectId', isEqualTo: subjectId)
+        .where('date', isEqualTo: date)
+        .where('status', isEqualTo: status)
+        .snapshots();
+  }
+
+  // Update the status of a pending attendance record
+  Future<void> updatePendingAttendanceStatus(String attendanceId, String newStatus) async {
+    await _firestore.collection('PendingAttendance').doc(attendanceId).update({
+      'status': newStatus,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Get processed attendance for a specific subject and date
+  Stream<QuerySnapshot> getProcessedAttendanceForSubjectDate(String subjectId, String date) {
+    return _firestore
+        .collection('PendingAttendance')
+        .where('subjectId', isEqualTo: subjectId)
+        .where('date', isEqualTo: date)
+        .orderBy('scannedAt', descending: true)
+        .snapshots();
   }
 }

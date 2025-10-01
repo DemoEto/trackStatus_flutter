@@ -109,17 +109,88 @@ class _HomePageState extends State<HomePage> {
         'label': 'หน้าหลัก',
         'route': '/',
       },
+      // เข้าสู่ระบบ / จัดการโปรไฟล์ตนเอง (All roles)
+      {
+        'icon': Icons.person,
+        'label': 'โปรไฟล์ของฉัน',
+        'route': AppRoutes.service,
+      },
     ];
 
-    // Add QR Scan for students only
-    if (_role != null && _role == 'student') {
+    // เช็คชื่อเข้าเรียนด้วย QR Code (Student and Admin only)
+    if (_role != null && (_role == 'student' || _role == 'admin')) {
       navigationItems.add({
         'icon': Icons.qr_code_scanner,
-        'label': 'สแกน QR',
-        'route': AppRoutes.qrScan,
+        'label': 'เช็คชื่อ QR',
+        'route': AppRoutes.qrCheckin,
       });
-      
-      // Add Homework for students only
+    }
+
+    // ดูประวัติการมาเรียนของตนเอง (Student and Admin only)
+    if (_role != null && (_role == 'student' || _role == 'admin')) {
+      navigationItems.add({
+        'icon': Icons.history,
+        'label': 'ประวัติการมาเรียนของฉัน',
+        'route': AppRoutes.attendHistory,
+      });
+    }
+
+    // ดูประวัติการมาเรียนของนักเรียน (Teacher and Admin only)
+    if (_role != null && (_role == 'teacher' || _role == 'admin')) {
+      navigationItems.add({
+        'icon': Icons.history,
+        'label': 'ประวัตินักเรียน',
+        'route': AppRoutes.attendHistory,
+      });
+    }
+
+    // ดูประวัติการมาเรียนของลูก (Parent and Admin only)
+    if (_role != null && (_role == 'parent' || _role == 'admin')) {
+      navigationItems.add({
+        'icon': Icons.history,
+        'label': 'ประวัติการมาเรียนของลูก',
+        'route': AppRoutes.attendHistory,
+      });
+    }
+
+    // สร้าง QR Code สำหรับเช็คชื่อรายวิชา (Teacher and Admin only)
+    if (_role != null && (_role == 'teacher' || _role == 'admin')) {
+      navigationItems.add({
+        'icon': Icons.qr_code,
+        'label': 'สร้าง QR Code สำหรับเช็คชื่อ',
+        'route': AppRoutes.qrCheckin,
+      });
+    }
+
+    // จัดการข้อมูลวิชา (Admin only)
+    if (_role != null && _role == 'admin') {
+      navigationItems.add({
+        'icon': Icons.school,
+        'label': 'จัดการวิชา',
+        'route': AppRoutes.adminManagement,
+      });
+    }
+
+    // เพิ่ม/แก้ไขข้อมูลคนขับรถ (Driver and Admin only)
+    if (_role != null && (_role == 'driver' || _role == 'admin')) {
+      navigationItems.add({
+        'icon': FontAwesomeIcons.car,
+        'label': 'จัดการข้อมูลคนขับ',
+        'route': AppRoutes.adminManagement,
+      });
+    }
+
+    // เพิ่ม/แก้ไขข้อมูลผู้ใช้ (Admin only)
+    if (_role != null && _role == 'admin') {
+      navigationItems.add({
+        'icon': Icons.people,
+        'label': 'จัดการผู้ใช้งาน',
+        'route': AppRoutes.usersManagement,
+      });
+    }
+
+    // Add Homework for students only
+    if (_role != null && _role == 'student') {
       navigationItems.add({
         'icon': Icons.book,
         'label': 'การบ้าน',
@@ -135,15 +206,6 @@ class _HomePageState extends State<HomePage> {
         'route': '${AppRoutes.homework}/assignment',
       });
     }
-    
-    // Add QR Check-in for teachers only
-    if (_role != null && _role == 'teacher') {
-      navigationItems.add({
-        'icon': Icons.qr_code,
-        'label': 'เช็คชื่อ QR',
-        'route': AppRoutes.qrCheckin,
-      });
-    }
 
     // Add Follow Vehicle for drivers only
     if (_role != null && _role == 'driver') {
@@ -153,29 +215,6 @@ class _HomePageState extends State<HomePage> {
         'route': AppRoutes.followVehicle,
       });
     }
-
-    // Add Admin Management for admins only
-    if (_role != null && _role == 'admin') {
-      navigationItems.add({
-        'icon': Icons.admin_panel_settings,
-        'label': 'ผู้ดูแลระบบ',
-        'route': AppRoutes.adminManagement,
-      });
-    }
-
-    // Add scan history for all users
-    navigationItems.add({
-      'icon': Icons.qr_code,
-      'label': 'ประวัติการสแกน',
-      'route': AppRoutes.attendHistory,
-    });
-
-    // Add service/profile page for all users
-    navigationItems.add({
-      'icon': Icons.person,
-      'label': 'บริการ',
-      'route': AppRoutes.service,
-    });
 
     // Load user data for drawer header
     final user = FirebaseAuth.instance.currentUser;

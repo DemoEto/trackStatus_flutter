@@ -108,7 +108,30 @@ final GoRouter router = GoRouter(
       builder: (context, state) {
         final subId = state.pathParameters['subId']!;
         final date = state.pathParameters['date']!;
-        return QrCheckinPage(fromQrScan: true,subId: subId,date: date);
+        final teacherId = state.pathParameters['teacherId']!;
+        return QrCheckinPage(
+          fromQrScan: true,
+          subId: subId,
+          date: date,
+          teacherId: teacherId,
+        );
+      },
+    ),
+    GoRoute(
+      path: '${AppRoutes.qrCheckinScan}/:subId/:date/:teacherId/:allowLateScans',
+      name: 'qrCheckinScanWithLate',
+      builder: (context, state) {
+        final subId = state.pathParameters['subId']!;
+        final date = state.pathParameters['date']!;
+        final teacherId = state.pathParameters['teacherId']!;
+        final allowLateScans = state.pathParameters['allowLateScans'] == 'true';
+        return QrCheckinPage(
+          fromQrScan: true,
+          subId: subId,
+          date: date,
+          teacherId: teacherId,
+          allowLateScans: allowLateScans,
+        );
       },
     ),
     GoRoute(
