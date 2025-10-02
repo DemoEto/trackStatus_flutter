@@ -10,16 +10,10 @@ class AddUserPage extends StatefulWidget {
 
 class _AddUserPageState extends State<AddUserPage> {
   final _formKey = GlobalKey<FormState>();
-
-  String? _selectedUserType; // Dropdown value
+  String? _selectedUserType;
   final List<String> _userTypes = [
-    'student',
-    'teacher',
-    'admin',
-    'driver',
-    'parent',
+    'student', 'teacher', 'admin', 'driver', 'parent',
   ];
-
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _busIdController = TextEditingController();
@@ -27,7 +21,6 @@ class _AddUserPageState extends State<AddUserPage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _childrenController = TextEditingController();
   final TextEditingController _subIdController = TextEditingController();
-
   final UserService _userService = UserService();
 
   Future<void> _addUser() async {

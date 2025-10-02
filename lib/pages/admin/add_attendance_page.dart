@@ -17,20 +17,18 @@ class _AddattendancePageState extends State<AddattendancePage> {
   String _status = "present";
   String _type = "class_in";
   bool _isLoading = false;
-
   final AttendanceService _attendanceService = AttendanceService();
 
   @override
   void dispose() {
-    _studentIdController.dispose();
-    _nameController.dispose();
-    _subjectController.dispose();
-    super.dispose();
+  _studentIdController.dispose();
+  _nameController.dispose();
+  _subjectController.dispose();
+  super.dispose();
   }
 
   Future<void> _saveAttendance() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() {
       _isLoading = true;
     });
@@ -40,8 +38,6 @@ class _AddattendancePageState extends State<AddattendancePage> {
       if (user == null) {
         throw Exception('User not authenticated');
       }
-
-      // Add attendance using AttendanceService
       await _attendanceService.addAttendance(
         studentId: _studentIdController.text,
         name: _nameController.text,
@@ -50,12 +46,11 @@ class _AddattendancePageState extends State<AddattendancePage> {
         status: _status,
         teacherId: user.uid,
       );
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('บันทึกข้อมูลการมาเรียนเรียบร้อย')),
         );
-        Navigator.pop(context); // Return to previous page
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {

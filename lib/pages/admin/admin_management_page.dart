@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import '../../routes/app_route.dart';
 
 class AdminManagementPage extends StatelessWidget {
@@ -22,10 +21,10 @@ class AdminManagementPage extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Colors.Theme.of(context).colorScheme.primary),
+            child: Icon(icon, color: Theme.of(context).colorScheme.primary),
           ),
           title: Text(
             title,
