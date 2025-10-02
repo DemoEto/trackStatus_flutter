@@ -18,8 +18,7 @@ class _LoginPageState extends State<LoginPage> {
 
   final TextEditingController _controllerEmail = TextEditingController();
   final TextEditingController _controllerPassword = TextEditingController();
-  final TextEditingController _controllerConfirmPassword =
-      TextEditingController();
+  final TextEditingController _controllerConfirmPassword = TextEditingController();
   final TextEditingController _controllerName = TextEditingController();
 
   @override
@@ -31,10 +30,10 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> signInWithEmailAndPassword() async {
+  Future<void> _handleSignIn() async {
     try {
       await AuthService().signIn(
-        email: _controllerEmail.text,
+        email: _controllerEmail.text.trim(),
         password: _controllerPassword.text,
       );
 
@@ -50,23 +49,36 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> createUserWithEmailAndPassword() async {
+  Future<void> _handleRegister() async {
     if (_controllerPassword.text != _controllerConfirmPassword.text) {
       setState(() {
         errorMessage = 'Passwords do not match.';
       });
       return;
     }
+    
+    if (_controllerName.text.trim().isEmpty) {
+      setState(() {
+        errorMessage = 'Please enter your name.';
+      });
+      return;
+    }
+    
     try {
       await AuthService().register(
-        email: _controllerEmail.text,
+        email: _controllerEmail.text.trim(),
         password: _controllerPassword.text,
-        displayName: _controllerName.text,
+        displayName: _controllerName.text.trim(),
       );
+      
       if (mounted) {
         _controllerPassword.clear();
         _controllerConfirmPassword.clear();
         _controllerName.clear();
+        setState(() {
+          errorMessage = 'Registration successful! Please log in.';
+          isLogin = true;
+        });
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -75,38 +87,52 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Widget _errorMessage() {
+  Widget _buildErrorMessage() {
     if (errorMessage == null || errorMessage!.isEmpty) {
       return const SizedBox.shrink();
     }
-    return Text(
-      errorMessage!,
-      style: const TextStyle(color: Colors.red, fontSize: 16),
-      textAlign: TextAlign.center,
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        border: Border.all(color: Colors.red),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error, color: Colors.red, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              errorMessage!,
+              style: const TextStyle(color: Colors.red, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _submitButton(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+  Widget _buildSubmitButton() {
     return SizedBox(
-      width: screenWidth * 0.8,
+      width: double.infinity,
+      height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          backgroundColor: Colors.grey[300],
+          foregroundColor: Colors.black54,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(50),
           ),
+          padding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        onPressed: () {
-          isLogin
-              ? signInWithEmailAndPassword()
-              : createUserWithEmailAndPassword();
-        },
+        onPressed: isLogin ? _handleSignIn : _handleRegister,
         child: Text(
           isLogin ? 'Login' : 'Register',
           style: const TextStyle(
-            color: Colors.black54,
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -114,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _loginOrRegisterButton() {
+  Widget _buildToggleAuthButton() {
     return TextButton(
       onPressed: () {
         setState(() {
@@ -129,37 +155,39 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _entryField(
-    BuildContext context,
-    String labelText,
-    TextEditingController controller, {
+  Widget _buildInputField({
+    required String labelText,
+    required TextEditingController controller,
     bool isPassword = false,
     IconData? icon,
+    String? Function(String?)? validator,
   }) {
-    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
-      width: screenWidth * 0.8,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: TextField(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
         controller: controller,
         obscureText: isPassword,
         decoration: InputDecoration(
-          icon: icon != null ? Icon(icon, color: Colors.grey, size: 22) : null,
+          prefixIcon: Icon(icon, color: Colors.grey[600]),
           labelText: labelText,
-          labelStyle: const TextStyle(fontSize: 16, color: Colors.grey),
-          border: InputBorder.none,
-          isDense: true,
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+          enabledBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Colors.grey),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Colors.blue),
+          ),
         ),
+        validator: validator,
       ),
     );
   }
 
-  Widget _socialLoginButtons(BuildContext context) {
+  Widget _buildSocialLoginButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -199,155 +227,182 @@ class _LoginPageState extends State<LoginPage> {
             size: 30,
           ),
         ),
-        IconButton(
-          onPressed: () {
-            // TODO: implement LinkedIn login
-          },
-          icon: const Icon(
-            FontAwesomeIcons.linkedinIn,
-            color: Colors.green,
-            size: 30,
-          ),
-        ),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 197, 211, 232),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color.fromARGB(255, 197, 211, 232),
+              Color.fromARGB(255, 156, 179, 216),
+            ],
+          ),
         ),
         child: Center(
           child: SingleChildScrollView(
-            child: Container(
-              width: screenWidth * 0.9,
-              constraints: BoxConstraints(
-                maxWidth: 400, // Maximum width for better UX on large screens
-                maxHeight: screenHeight * 0.85, // Limit height for better UX
+            padding: const EdgeInsets.all(20.0),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 400,
               ),
-              padding: const EdgeInsets.all(20.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Align(
-                    alignment: Alignment.center,
-                    child: SizedBox(
-                      height: 120,
-                      width: 120,
-                      child: Image(
-                        image: AssetImage("assets/images/login2.png"),
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    isLogin ? "Hello" : "Create Account",
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isLogin
-                        ? "Please Login to Your Account"
-                        : "Create a new account",
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  _entryField(
-                    context,
-                    "Email Address",
-                    _controllerEmail,
-                    icon: FontAwesomeIcons.envelope,
-                  ),
-                  const SizedBox(height: 10),
-                  _entryField(
-                    context,
-                    "Password",
-                    _controllerPassword,
-                    isPassword: true,
-                    icon: FontAwesomeIcons.eyeSlash,
-                  ),
-                  if (!isLogin) ...[
-                    const SizedBox(height: 10),
-                    _entryField(
-                      context,
-                      "Confirm Password",
-                      _controllerConfirmPassword,
-                      isPassword: true,
-                      icon: FontAwesomeIcons.eye,
-                    ),
-                    const SizedBox(height: 10),
-                    _entryField(
-                      context,
-                      "Full Name",
-                      _controllerName,
-                      icon: FontAwesomeIcons.user,
+              child: Container(
+                padding: const EdgeInsets.all(24.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 2,
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
                   ],
-                  const SizedBox(height: 10),
-                  if (isLogin)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          // TODO: implement Forget Password logic
-                        },
-                        child: const Text(
-                          "Forgot Password?",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Align(
+                      alignment: Alignment.center,
+                      child: SizedBox(
+                        height: 120,
+                        width: 120,
+                        child: Image(
+                          image: AssetImage("assets/images/login2.png"),
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
-                  _errorMessage(),
-                  const SizedBox(height: 20),
-                  _submitButton(context),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "Or sign in with",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.grey,
+                    const SizedBox(height: 24),
+                    Text(
+                      isLogin ? "Welcome Back!" : "Create Account",
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 15),
-                  _socialLoginButtons(context),
-                  const SizedBox(height: 15),
-                  _loginOrRegisterButton(),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      isLogin
+                          ? "Please Login to Your Account"
+                          : "Create a new account to get started",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildInputField(
+                      labelText: "Email Address",
+                      controller: _controllerEmail,
+                      icon: FontAwesomeIcons.envelope,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        // Simple email validation
+                        if (!value.contains('@')) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    _buildInputField(
+                      labelText: "Password",
+                      controller: _controllerPassword,
+                      isPassword: true,
+                      icon: FontAwesomeIcons.lock,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        if (value.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                    if (!isLogin) ...[
+                      _buildInputField(
+                        labelText: "Confirm Password",
+                        controller: _controllerConfirmPassword,
+                        isPassword: true,
+                        icon: FontAwesomeIcons.lock,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please confirm your password';
+                          }
+                          if (value != _controllerPassword.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
+                      ),
+                      _buildInputField(
+                        labelText: "Full Name",
+                        controller: _controllerName,
+                        icon: FontAwesomeIcons.user,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your name';
+                          }
+                          if (value.trim().length < 2) {
+                            return 'Name must be at least 2 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 4),
+                    if (isLogin)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            // TODO: implement Forgot Password logic
+                          },
+                          child: const Text(
+                            "Forgot Password?",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    _buildErrorMessage(),
+                    const SizedBox(height: 16),
+                    _buildSubmitButton(),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Or sign in with",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSocialLoginButtons(),
+                    const SizedBox(height: 16),
+                    _buildToggleAuthButton(),
+                  ],
+                ),
               ),
             ),
           ),

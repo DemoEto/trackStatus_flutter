@@ -109,12 +109,6 @@ class _HomePageState extends State<HomePage> {
         'label': 'หน้าหลัก',
         'route': '/',
       },
-      // เข้าสู่ระบบ / จัดการโปรไฟล์ตนเอง (All roles)
-      {
-        'icon': Icons.person,
-        'label': 'โปรไฟล์ของฉัน',
-        'route': AppRoutes.services,
-      },
     ];
 
     // เช็คชื่อเข้าเรียนด้วย QR Code (Student and Admin only)

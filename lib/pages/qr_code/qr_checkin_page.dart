@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -250,7 +251,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
               
               // This section would use a new subject service
               // For now, placeholder - subject service needs to be created
-              return const DropdownButtonFormField<String>(
+              return DropdownButtonFormField<String>(
                 decoration: InputDecoration(
                   labelText: "เลือกวิชา",
                   border: OutlineInputBorder(),

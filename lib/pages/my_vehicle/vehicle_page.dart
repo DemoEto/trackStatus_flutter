@@ -17,7 +17,7 @@ class _VehiclePageState extends State<VehiclePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final VehicleService _vehicleService = VehicleService();
 
-  // ฟังก์ชันลบข้อมูล
+  // Delete vehicle data
   Future<void> _deleteVehicle(String vehicleId, String imageUrl) async {
     try {
       await _vehicleService.deleteVehicle(vehicleId, imageUrl);
@@ -30,13 +30,13 @@ class _VehiclePageState extends State<VehiclePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("เกิดข้อผิดพลาดในการลบ: $e")),
+          SnackBar(content: Text("เกิดข้อผิดพลาดในการลบ: ${e.toString()}")),
         );
       }
     }
   }
 
-  // Popup ยืนยันการลบ
+  // Confirmation dialog for deletion
   void _confirmDelete(String vehicleId, String imageUrl) {
     showDialog(
       context: context,
@@ -48,8 +48,7 @@ class _VehiclePageState extends State<VehiclePage> {
             onPressed: () => Navigator.pop(context),
             child: const Text("ยกเลิก"),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(),
+          TextButton(
             onPressed: () {
               Navigator.pop(context);
               _deleteVehicle(vehicleId, imageUrl);
@@ -88,11 +87,7 @@ class _VehiclePageState extends State<VehiclePage> {
                 subtitle: const Text("สำหรับพนักงานขับรถโรงเรียน"),
                 onTap: () {
                   Navigator.pop(context);
-                  // Directly navigate to add school vehicle
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const VehicleAddPage(isSchoolVehicle: true)),
-                  );
+                  context.push('/vehicle/add', extra: {'isSchoolVehicle': true});
                 },
               ),
             ],
@@ -119,18 +114,12 @@ class _VehiclePageState extends State<VehiclePage> {
 
     if (userRole == 'parent') {
       // If user is parent, allow directly
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const VehicleAddPage(isPersonalVehicle: true)),
-      );
+      context.push('/vehicle/add', extra: {'isPersonalVehicle': true});
     } else {
       // For other roles, show confirmation dialog
       bool confirmed = await _showParentConfirmationDialog();
       if (confirmed) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const VehicleAddPage(isPersonalVehicle: true)),
-        );
+        context.push('/vehicle/add', extra: {'isPersonalVehicle': true});
       }
     }
   }
@@ -153,7 +142,7 @@ class _VehiclePageState extends State<VehiclePage> {
               },
               child: const Text("ยกเลิก"),
             ),
-            ElevatedButton(
+            TextButton(
               onPressed: () {
                 Navigator.pop(context, true); // Return true
               },
@@ -175,10 +164,7 @@ class _VehiclePageState extends State<VehiclePage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
-            // Try to pop first, if that doesn't work, go home
-            bool? result = await Navigator.of(context).maybePop();
-            if (result != true) {
-              // If maybePop didn't work, navigate to home
+            if (!await Navigator.maybePop(context)) {
               context.go('/');
             }
           },
@@ -187,22 +173,19 @@ class _VehiclePageState extends State<VehiclePage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _vehicleService.getVehicles(),
         builder: (context, snapshot) {
-          // กรณีมีข้อผิดพลาด
           if (snapshot.hasError) {
-            return const Center(
+            return Center(
               child: Text(
-                "เกิดข้อผิดพลาดในการโหลดข้อมูล",
-                style: TextStyle(color: Colors.red, fontSize: 16),
+                "เกิดข้อผิดพลาดในการโหลดข้อมูล: ${snapshot.error}",
+                style: const TextStyle(color: Colors.red, fontSize: 16),
               ),
             );
           }
 
-          // กรณีกำลังโหลดข้อมูล
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // ตรวจสอบว่า snapshot มีข้อมูลหรือไม่
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Column(
@@ -228,69 +211,79 @@ class _VehiclePageState extends State<VehiclePage> {
             );
           }
 
-          // แสดงรายการรถ
-          final data = snapshot.data!.docs;
+          final vehicles = snapshot.data!.docs;
           return ListView.builder(
-            itemCount: data.length,
+            padding: const EdgeInsets.all(16),
+            itemCount: vehicles.length,
             itemBuilder: (context, index) {
-              var vehicle = data[index];
-              // ตรวจสอบ null safety สำหรับข้อมูลจาก Firestore
-              final licensePlate = vehicle['licensePlate'] as String? ?? 'ไม่ระบุ';
-              final imageUrl = vehicle['imageUrl'] as String? ?? '';
-              final isSchoolVehicle = vehicle['isSchoolVehicle'] as bool? ?? false;
+              final vehicle = vehicles[index];
+              final licensePlate = vehicle.get('licensePlate')?.toString() ?? 'ไม่ระบุ';
+              final imageUrl = vehicle.get('imageUrl')?.toString() ?? '';
+              final isSchoolVehicle = vehicle.get('isSchoolVehicle') as bool? ?? false;
+              final vehicleType = vehicle.get('type')?.toString() ?? (isSchoolVehicle ? 'school' : 'personal');
 
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: isSchoolVehicle ? Colors.green : Colors.blue,
+                    width: 1.0,
+                  ),
                 ),
-                elevation: 4,
-                child: ListTile(
-                  leading: Container(
-                    decoration: BoxDecoration(
-                      color: isSchoolVehicle ? Colors.green.shade100 : Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    width: 60,
-                    height: 60,
-                    child: Icon(
-                      isSchoolVehicle ? Icons.directions_bus : Icons.directions_car,
-                      color: isSchoolVehicle ? Colors.green : Colors.blue,
-                      size: 30,
-                    ),
-                  ),
-                  title: Text(
-                    licensePlate,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  subtitle: Text(
-                    isSchoolVehicle ? "รถโรงเรียน" : "รถส่วนตัว",
-                    style: TextStyle(
-                      color: isSchoolVehicle ? Colors.green : Colors.blue,
-                    ),
-                  ),
-                  trailing: Wrap(
-                    spacing: 8,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.teal),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => VehicleEditPage(
-                                vehicleId: vehicle.id,
-                                licensePlate: licensePlate,
-                                imageUrl: imageUrl,
-                              ),
-                            ),
-                          );
-                        },
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ListTile(
+                    leading: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: isSchoolVehicle ? Colors.green.shade50 : Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSchoolVehicle ? Colors.green : Colors.blue,
+                        ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(vehicle.id, imageUrl),
+                      child: Icon(
+                        isSchoolVehicle ? Icons.directions_bus : Icons.directions_car,
+                        color: isSchoolVehicle ? Colors.green : Colors.blue,
+                        size: 30,
                       ),
-                    ],
+                    ),
+                    title: Text(
+                      licensePlate,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    subtitle: Text(
+                      isSchoolVehicle ? "รถโรงเรียน" : "รถส่วนตัว",
+                      style: TextStyle(
+                        color: isSchoolVehicle ? Colors.green : Colors.blue,
+                        fontSize: 14,
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.teal),
+                          onPressed: () {
+                            context.push('/vehicle/edit', extra: {
+                              'vehicleId': vehicle.id,
+                              'licensePlate': licensePlate,
+                              'imageUrl': imageUrl,
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _confirmDelete(vehicle.id, imageUrl),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -299,8 +292,9 @@ class _VehiclePageState extends State<VehiclePage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
         onPressed: _showVehicleTypeSelection,
+        backgroundColor: Theme.of(context).primaryColor,
+        child: const Icon(Icons.add),
       ),
     );
   }

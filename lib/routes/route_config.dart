@@ -10,9 +10,7 @@ import 'package:trackstatus_flutter/pages/admin/notification_management_page.dar
 import 'package:trackstatus_flutter/pages/follow_bus/follow_vehicle_page.dart';
 import 'package:trackstatus_flutter/pages/qr_code/qr_scanner_page.dart';
 
-import '../pages/services/academic_profile_page.dart';
 import '../pages/announcement/notification_history_page.dart';
-import '../pages/services/service_page.dart';
 import '../pages/home/home_page.dart';
 import '../pages/login/login_page.dart';
 import '../pages/scan_history/attendance_history_page.dart';
@@ -91,10 +89,6 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const AttendanceHistoryPage(),
     ),
     GoRoute(
-      path: AppRoutes.services,
-      builder: (context, state) => const ServicesPage(),
-    ),
-    GoRoute(
       path: AppRoutes.qrCheckin,
       builder: (context, state) => const QrCheckinPage(fromQrScan: false,subId: "",date: "",),
     ),
@@ -133,10 +127,6 @@ final GoRouter router = GoRouter(
           allowLateScans: allowLateScans,
         );
       },
-    ),
-    GoRoute(
-      path: AppRoutes.academicProfile,
-      builder: (context, state) => const AcademicProfilePage(),
     ),
     GoRoute(
       path: AppRoutes.followVehicle,
@@ -178,7 +168,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.addAttendance,
-      builder: (context, state) => const AddattendancePage(),
+      builder: (context, state) => const AddAttendancePage(),
     ),
     GoRoute(
       path: '${AppRoutes.editAttendance}/:attendanceId',

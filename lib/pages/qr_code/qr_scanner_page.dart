@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 
 import '../../routes/app_route.dart';
@@ -18,10 +19,17 @@ class QrScannerPage extends StatefulWidget {
 
 class _QrScannerPageState extends State<QrScannerPage> {
   final MobileScannerController _controller = MobileScannerController();
-  bool _scanned = false; // กันซ้ำ
+  bool _scanned = false; // Prevent duplicate scans
   
   final AttendanceService _attendanceService = AttendanceService();
   final NotificationService _notificationService = NotificationService();
+  final UserService _userService = UserService();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   // Handle class check-in notification
   Future<void> _handleClassCheckin(String? currentUserId, String subjectId) async {
@@ -29,10 +37,10 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
     try {
       // Get student info using UserService
-      Map<String, dynamic>? userData = await UserService().getUserById(currentUserId);
+      Map<String, dynamic>? userData = await _userService.getUserById(currentUserId);
       if (userData != null) {
-        String studentName = userData['name'] ?? currentUserId;
-        String? subjectName = userData['subjectName'] ?? subjectId; // subject name would need to come from subject service
+        String studentName = userData['name']?.toString() ?? currentUserId;
+        String? subjectName = userData['subjectName']?.toString() ?? subjectId; // subject name would need to come from subject service
         
         // Use NotificationService to send notifications to the student and their parents
         // Send notification to student
@@ -72,7 +80,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
         // Send notification to parents of this student using UserService
         QuerySnapshot? parentSnapshot;
-        await for (var snapshot in UserService().getParentsByChildId(currentUserId)) {
+        await for (var snapshot in _userService.getParentsByChildId(currentUserId)) {
           parentSnapshot = snapshot;
           break; // Get the first snapshot
         }
@@ -124,8 +132,8 @@ class _QrScannerPageState extends State<QrScannerPage> {
   Future<void> _handleSchoolArrival(String studentId) async {
     try {
       // Get student name from the database using UserService
-      Map<String, dynamic>? userData = await UserService().getUserById(studentId);
-      String studentName = userData != null ? userData['name'] ?? studentId : studentId;
+      Map<String, dynamic>? userData = await _userService.getUserById(studentId);
+      String studentName = userData != null ? userData['name']?.toString() ?? studentId : studentId;
       
       // Use NotificationService to send notifications to the student and their parents
       // Send notification to student
@@ -162,7 +170,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
       // Send notification to parents of this student using UserService
       QuerySnapshot? parentSnapshot;
-      await for (var snapshot in UserService().getParentsByChildId(studentId)) {
+      await for (var snapshot in _userService.getParentsByChildId(studentId)) {
         parentSnapshot = snapshot;
         break; // Get the first snapshot
       }
@@ -210,8 +218,8 @@ class _QrScannerPageState extends State<QrScannerPage> {
   Future<void> _handleSchoolDeparture(String studentId) async {
     try {
       // Get student name from the database using UserService
-      Map<String, dynamic>? userData = await UserService().getUserById(studentId);
-      String studentName = userData != null ? userData['name'] ?? studentId : studentId;
+      Map<String, dynamic>? userData = await _userService.getUserById(studentId);
+      String studentName = userData != null ? userData['name']?.toString() ?? studentId : studentId;
       
       // Use NotificationService to send notifications to the student and their parents
       // Send notification to student
@@ -248,7 +256,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
       // Send notification to parents of this student using UserService
       QuerySnapshot? parentSnapshot;
-      await for (var snapshot in UserService().getParentsByChildId(studentId)) {
+      await for (var snapshot in _userService.getParentsByChildId(studentId)) {
         parentSnapshot = snapshot;
         break; // Get the first snapshot
       }
@@ -292,6 +300,87 @@ class _QrScannerPageState extends State<QrScannerPage> {
     }
   }
 
+  // Process the QR code based on its type
+  Future<void> _processQRCode(List<String> parts) async {
+    if (parts.isEmpty) return;
+
+    final qrType = parts[0];
+    
+    if (qrType == "AppRoutes.qrCheckin") {
+      // Handle class check-in
+      if (parts.length >= 3) {
+        final subjectId = parts[1];
+        
+        // Get current user as the student and fetch data
+        _handleClassCheckin(FirebaseAuth.instance.currentUser?.uid, subjectId);
+      }
+      
+      // Navigate to qrCheckin page if we have complete data
+      if (parts.length >= 4) {
+        // Assuming format is: AppRoutes.qrCheckin/subjectId/date/teacherId/allowLateScans
+        final subjectId = parts[1];
+        final date = parts[2];
+        final teacherId = parts[3];
+        bool allowLateScans = false;
+        
+        if (parts.length >= 5) {
+          allowLateScans = parts[4].toLowerCase() == 'true';
+        }
+        
+        // Save pending attendance with scan time
+        String? studentId = FirebaseAuth.instance.currentUser?.uid;
+        if (studentId != null) {
+          try {
+            await _attendanceService.savePendingAttendance(
+              stdId: studentId,
+              subId: subjectId,
+              teacherId: teacherId,
+              scanTime: DateTime.now(), // Pass scan time
+            );
+          } catch (e) {
+            debugPrint('Error saving pending attendance: $e');
+          }
+        }
+        
+        context.push('/qrCheckinScan/$subjectId/$date/$teacherId/$allowLateScans');
+      } else {
+        // Fallback if we don't have complete data
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ข้อมูล QR ไม่ครบถ้วน')),
+          );
+        }
+        context.go('/'); // Go back to home
+      }
+    } 
+    else if (qrType == "school_arrival") {
+      // Handle school arrival QR scan - in this case studentId is passed in the QR
+      if (parts.length >= 2) {
+        final studentId = parts[1];
+        _handleSchoolArrival(studentId);
+      }
+    }
+    else if (qrType == "school_departure") {
+      // Handle school departure QR scan - in this case studentId is passed in the QR
+      if (parts.length >= 2) {
+        final studentId = parts[1];
+        _handleSchoolDeparture(studentId);
+      }
+    }
+    else {
+      // If no valid path is found, show notification and go home
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่พบเส้นทาง ไปหน้าแรกแทน')),
+        );
+      }
+      if (mounted) {
+        // Make sure we're using the correct route name
+        context.go('/'); // Navigate to root which redirects to appropriate page
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -315,99 +404,29 @@ class _QrScannerPageState extends State<QrScannerPage> {
           MobileScanner(
             controller: _controller,
             onDetect: (capture) async {
-              if (_scanned) return; // กันซ้ำ
+              if (_scanned) return; // Prevent duplicate scans
               _scanned = true;
 
               final List<Barcode> barcodes = capture.barcodes;
               for (final barcode in barcodes) {
                 final String? code = barcode.rawValue;
                 if (code != null) {
-                  // หยุดกล้องทันที
+                  // Stop camera immediately
                   _controller.stop();
                   
-                  debugPrint('👽${code}');
+                  debugPrint('QR Code detected: $code');
+                  
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(code)),
+                      SnackBar(content: Text('QR Code: $code')),
                     );
                   }
+                  
                   // Determine the type of QR code and trigger appropriate notification
                   final parts = code.split("/");
-                  final qrType = parts[0];
                   
-                  if (qrType == "AppRoutes.qrCheckin") {
-                    // Handle class check-in
-                    if (parts.length >= 3) {
-                      final subjectId = parts[1];
-                      final date = parts[2];
-                      
-                      // Get current user as the student and fetch data
-                      _handleClassCheckin(FirebaseAuth.instance.currentUser?.uid, subjectId);
-                    }
-                    
-                    // ไปหน้า /qrCheckin แต่ตรวจสอบว่ามี path parameters ครบ
-                    if (parts.length >= 4) {
-                      // Assuming format is: AppRoutes.qrCheckin/subjectId/date/teacherId/allowLateScans
-                      final subjectId = parts[1];
-                      final date = parts[2];
-                      final teacherId = parts[3];
-                      bool allowLateScans = false;
-                      
-                      if (parts.length >= 5) {
-                        allowLateScans = parts[4].toLowerCase() == 'true';
-                      }
-                      
-                      // Save pending attendance with scan time
-                      String? studentId = FirebaseAuth.instance.currentUser?.uid;
-                      if (studentId != null) {
-                        try {
-                          await _attendanceService.savePendingAttendance(
-                            stdId: studentId,
-                            subId: subjectId,
-                            teacherId: teacherId,
-                            scanTime: DateTime.now(), // Pass scan time
-                          );
-                        } catch (e) {
-                          debugPrint('Error saving pending attendance: $e');
-                        }
-                      }
-                      
-                      context.push('/qrCheckinScan/$subjectId/$date/$teacherId/$allowLateScans');
-                    } else {
-                      // Fallback ถ้าไม่มีข้อมูลครบ
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('ข้อมูล QR ไม่ครบถ้วน')),
-                        );
-                      }
-                      context.go('/'); // กลับไปหน้าหลัก
-                    }
-                  } 
-                  else if (qrType == "school_arrival") {
-                    // Handle school arrival QR scan - in this case studentId is passed in the QR
-                    if (parts.length >= 2) {
-                      final studentId = parts[1];
-                      _handleSchoolArrival(studentId);
-                    }
-                  }
-                  else if (qrType == "school_departure") {
-                    // Handle school departure QR scan - in this case studentId is passed in the QR
-                    if (parts.length >= 2) {
-                      final studentId = parts[1];
-                      _handleSchoolDeparture(studentId);
-                    }
-                  }
-                  else {
-                    // ถ้าไม่เจอ path ให้แจ้งเตือนและไป home
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ไม่พบเส้นทาง ไปหน้าแรกแทน')),
-                      );
-                    }
-                    if (mounted) {
-                      // Make sure we're using the correct route name
-                      context.go('/'); // Navigate to root which redirects to appropriate page
-                    }
+                  if (parts.isNotEmpty) {
+                    await _processQRCode(parts);
                   }
                   
                   // Reset the scan flag after a delay to allow new scans
@@ -448,13 +467,10 @@ class _QrScannerPageState extends State<QrScannerPage> {
             child: SizedBox(
               width: 250,
               height: 250,
-              child: ColoredBox(
-                color: Colors.transparent,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.fromBorderSide(
-                      BorderSide(width: 3, color: Colors.white),
-                    ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.fromBorderSide(
+                    BorderSide(width: 3, color: Colors.white),
                   ),
                 ),
               ),

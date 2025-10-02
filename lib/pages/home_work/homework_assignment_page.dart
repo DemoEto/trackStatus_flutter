@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' show QuerySnapshot;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
-import '../../services/notification_service.dart';
 import '../../services/assignment_service.dart';
 import '../../services/user_service.dart';
 
@@ -21,17 +20,17 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
   final _dueDateController = TextEditingController();
   final AssignmentService _assignmentService = AssignmentService();
   final UserService _userService = UserService();
-  final NotificationService _notificationService = NotificationService();
   final _auth = FirebaseAuth.instance;
 
   DateTime? _selectedDueDate;
-  String? _selectedSubject;
   List<String> _assignedStudentIds = [];
 
   @override
-  void initState() {
-    super.initState();
-    // Initialization is handled by services now
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _dueDateController.dispose();
+    super.dispose();
   }
 
   Future<void> _selectDueDate() async {
@@ -70,7 +69,7 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
       List<Map<String, dynamic>> students = studentSnapshot.docs
           .map((doc) => {
                 'id': doc.id,
-                'name': doc.get('name') ?? 'ไม่ระบุชื่อ',
+                'name': doc.get('name')?.toString() ?? 'ไม่ระบุชื่อ',
                 'selected': _assignedStudentIds.contains(doc.id)
               })
           .toList();
@@ -96,7 +95,7 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
       debugPrint('Error selecting students: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกนักเรียน: $e')),
+          SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกนักเรียน: ${e.toString()}')),
         );
       }
     }
@@ -126,15 +125,14 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
 
       // Get teacher name
       Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
-      String teacherName = userData?['name'] ?? 'ไม่ระบุชื่อ';
+      String teacherName = userData?['name']?.toString() ?? 'ไม่ระบุชื่อ';
 
-      // Use AssignmentService to create assignment and send notifications
+      // Use AssignmentService to create assignment
       await _assignmentService.createAssignment(
-        title: _titleController.text,
-        description: _descriptionController.text,
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
         dueDate: _selectedDueDate!,
         assignedStudentIds: _assignedStudentIds,
-        subjectId: _selectedSubject ?? 'general',
         teacherId: user.uid,
         teacherName: teacherName,
       );
@@ -151,14 +149,13 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
         setState(() {
           _selectedDueDate = null;
           _assignedStudentIds = [];
-          _selectedSubject = null;
         });
       }
     } catch (e) {
       debugPrint('Error assigning homework: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการมอบหมายการบ้าน: $e')),
+          SnackBar(content: Text('เกิดข้อผิดพลาดในการมอบหมายการบ้าน: ${e.toString()}')),
         );
       }
     }
@@ -173,10 +170,7 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
-            // Try to pop first, if that doesn't work, go home
-            bool? result = await Navigator.of(context).maybePop();
-            if (result != true) {
-              // If maybePop didn't work, navigate to home
+            if (!await Navigator.maybePop(context)) {
               context.go('/');
             }
           },
@@ -186,113 +180,126 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: ListView(
-            children: [
-              // Title field
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'ชื่อการบ้าน',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.title),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title field
+                TextFormField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'ชื่อการบ้าน',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.title),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'กรุณากรอกชื่อการบ้าน';
+                    }
+                    if (value.trim().length < 3) {
+                      return 'ชื่อการบ้านต้องมีอย่างน้อย 3 ตัวอักษร';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'กรุณากรอกชื่อการบ้าน';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Description field
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'รายละเอียดการบ้าน',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                  alignLabelWithHint: true,
+                const SizedBox(height: 16),
+                
+                // Description field
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'รายละเอียดการบ้าน',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.description),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 4,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'กรุณากรอกรายละเอียดการบ้าน';
+                    }
+                    if (value.trim().length < 10) {
+                      return 'รายละเอียดการบ้านต้องมีอย่างน้อย 10 ตัวอักษร';
+                    }
+                    return null;
+                  },
                 ),
-                maxLines: 4,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'กรุณากรอกรายละเอียดการบ้าน';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Due date selection
-              TextFormField(
-                controller: _dueDateController,
-                decoration: const InputDecoration(
-                  labelText: 'วันกำหนดส่ง',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
+                const SizedBox(height: 16),
+                
+                // Due date selection
+                TextFormField(
+                  controller: _dueDateController,
+                  decoration: const InputDecoration(
+                    labelText: 'วันกำหนดส่ง',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.calendar_today),
+                  ),
+                  readOnly: true,
+                  onTap: _selectDueDate,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'กรุณาเลือกวันกำหนดส่ง';
+                    }
+                    return null;
+                  },
                 ),
-                readOnly: true,
-                onTap: _selectDueDate,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'กรุณาเลือกวันกำหนดส่ง';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Student selection
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'นักเรียนที่ได้รับการบ้าน',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      if (_assignedStudentIds.isNotEmpty)
-                        Text('${_assignedStudentIds.length} นักเรียนถูกเลือก')
-                      else
-                        const Text('ยังไม่ได้เลือกนักเรียน', style: TextStyle(color: Colors.grey)),
-                      const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: _selectStudents,
-                        icon: const Icon(Icons.people),
-                        label: const Text('เลือกนักเรียน'),
-                        style: ElevatedButton.styleFrom(),
-                      ),
-                    ],
+                const SizedBox(height: 16),
+                
+                // Student selection
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'นักเรียนที่ได้รับการบ้าน',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _assignedStudentIds.isNotEmpty 
+                              ? '${_assignedStudentIds.length} นักเรียนถูกเลือก' 
+                              : 'ยังไม่ได้เลือกนักเรียน',
+                          style: TextStyle(
+                            color: _assignedStudentIds.isNotEmpty 
+                                ? Colors.black87 
+                                : Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _selectStudents,
+                            icon: const Icon(Icons.people),
+                            label: const Text('เลือกนักเรียน'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Assign button
-              ElevatedButton(
-                onPressed: _assignHomework,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                const SizedBox(height: 24),
+                
+                // Assign button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _assignHomework,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('มอบหมายการบ้าน', style: TextStyle(fontSize: 16)),
+                  ),
                 ),
-                child: const Text('มอบหมายการบ้าน', style: TextStyle(fontSize: 16)),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    _dueDateController.dispose();
-    super.dispose();
   }
 }
 
@@ -320,13 +327,14 @@ class _StudentSelectionDialogState extends State<_StudentSelectionDialog> {
       title: const Text('เลือกนักเรียน'),
       content: SizedBox(
         width: double.maxFinite,
+        height: MediaQuery.of(context).size.height * 0.6,
         child: ListView.builder(
           shrinkWrap: true,
           itemCount: selectedStudents.length,
           itemBuilder: (context, index) {
             final student = selectedStudents[index];
             return CheckboxListTile(
-              title: Text(student['name']),
+              title: Text(student['name'].toString()),
               value: student['selected'],
               onChanged: (bool? value) {
                 setState(() {
@@ -339,16 +347,11 @@ class _StudentSelectionDialogState extends State<_StudentSelectionDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text('ยกเลิก'),
         ),
         ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pop(selectedStudents);
-          },
-          style: ElevatedButton.styleFrom(),
+          onPressed: () => Navigator.of(context).pop(selectedStudents),
           child: const Text('ตกลง'),
         ),
       ],
