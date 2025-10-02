@@ -7,18 +7,17 @@ import '../../services/user_service.dart';
 
 class UsersManagementPage extends StatelessWidget {
   const UsersManagementPage({super.key});
-  
-  final UserService _userService = UserService();
 
   @override
   Widget build(BuildContext context) {
+    final UserService userService = UserService();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Users Management'),
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Users').snapshots(),
+        stream: userService.getAllUsers(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -73,10 +72,10 @@ class UsersManagementPage extends StatelessWidget {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.deepPurple.withOpacity(0.1),
+                              color: Colors.Theme.of(context).colorScheme.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Icon(Icons.person, color: Colors.deepPurple),
+                            child: const Icon(Icons.person, color: Colors.Theme.of(context).colorScheme.primary),
                           ),
                           title: Text(data['name'] ?? 'ไม่ทราบชื่อ'),
                           subtitle: Text('${data['id'] ?? ''} - ${data['role'] ?? ''}'),
@@ -94,7 +93,8 @@ class UsersManagementPage extends StatelessWidget {
                                 icon: const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () async {
                                   try {
-                                    await _userService.deleteUser(doc.id);
+                            await userService.deleteUser(doc.id);
+                          } catch (e) {
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('ลบผู้ใช้เรียบร้อย')),

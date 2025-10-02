@@ -56,7 +56,7 @@ class _NotificationManagementPageState extends State<NotificationManagementPage>
           ? ['student', 'parent', 'teacher', 'driver'] 
           : [_selectedRole];
 
-      for (String role : rolesToSend) {
+      for (String role in rolesToSend) {
         // Get users by role using UserService
         QuerySnapshot? usersSnapshot;
         await for (var snapshot in _userService.getUsersByRole(role)) {
@@ -230,11 +230,9 @@ class _NotificationManagementPageState extends State<NotificationManagementPage>
   }
 
   Widget _buildNotificationHistory() {
+    final NotificationService notificationService = NotificationService();
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('notifications') // Changed from 'Notifications' to match how it's done in NotificationService
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
+      stream: notificationService.getAllNotifications(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

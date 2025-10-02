@@ -50,9 +50,9 @@ class _AcademicProfilePageState extends State<AcademicProfilePage> {
 
   Widget _tabBar(){
     return const TabBar(
-      labelColor: Colors.deepPurple,
+      labelColor: Colors.Theme.of(context).colorScheme.primary,
       unselectedLabelColor: Colors.grey,
-      indicatorColor: Colors.deepPurple,
+      indicatorColor: Colors.Theme.of(context).colorScheme.primary,
       tabs: [
         Tab(text: 'Transcript'),
         Tab(text: 'GPA Plan'),

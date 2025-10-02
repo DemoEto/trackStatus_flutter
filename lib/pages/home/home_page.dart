@@ -113,7 +113,7 @@ class _HomePageState extends State<HomePage> {
       {
         'icon': Icons.person,
         'label': 'โปรไฟล์ของฉัน',
-        'route': AppRoutes.service,
+        'route': AppRoutes.services,
       },
     ];
 
@@ -131,7 +131,7 @@ class _HomePageState extends State<HomePage> {
       navigationItems.add({
         'icon': Icons.history,
         'label': 'ประวัติการมาเรียนของฉัน',
-        'route': AppRoutes.attendHistory,
+        'route': AppRoutes.attendanceHistory,
       });
     }
 
@@ -140,7 +140,7 @@ class _HomePageState extends State<HomePage> {
       navigationItems.add({
         'icon': Icons.history,
         'label': 'ประวัตินักเรียน',
-        'route': AppRoutes.attendHistory,
+        'route': AppRoutes.attendanceHistory,
       });
     }
 
@@ -149,7 +149,7 @@ class _HomePageState extends State<HomePage> {
       navigationItems.add({
         'icon': Icons.history,
         'label': 'ประวัติการมาเรียนของลูก',
-        'route': AppRoutes.attendHistory,
+        'route': AppRoutes.attendanceHistory,
       });
     }
 

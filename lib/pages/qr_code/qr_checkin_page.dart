@@ -495,15 +495,10 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Check the current user's role to prevent teachers from being added to student list
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(user.uid)
-        .get();
+    // Use UserService to get user data
+    Map<String, dynamic>? userData = await userService.getUserById(user.uid);
+    if (userData == null) return;
 
-    if (!userDoc.exists) return;
-
-    Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
     String? userRole = userData['role']?.toString();
 
     // Don't add teachers or admins to the student attendance list
@@ -515,12 +510,11 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
     final exists = scannedStudents.any((s) => s['uid'] == user.uid);
     if (exists) return;
 
-    final data = userData;
     setState(() {
       scannedStudents.add({
         'uid': user.uid,
-        'id': data['id'],
-        'name': data['name'],
+        'id': userData['id'],
+        'name': userData['name'],
         'status': 'present', // ค่า default
       });
     });
@@ -849,7 +843,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: isActive ? Colors.deepPurple : isCompleted ? Colors.green : Colors.grey,
+              color: isActive ? Theme.of(context).colorScheme.primary : isCompleted ? Colors.green : Colors.grey,
               shape: BoxShape.circle,
             ),
             child: isCompleted
@@ -867,7 +861,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
             title,
             style: TextStyle(
               fontSize: 12,
-              color: isActive ? Colors.deepPurple : isCompleted ? Colors.green : Colors.grey,
+              color: isActive ? Theme.of(context).colorScheme.primary : isCompleted ? Colors.green : Colors.grey,
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             ),
             textAlign: TextAlign.center,

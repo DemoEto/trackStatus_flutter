@@ -158,6 +158,22 @@ class NotificationService {
     }
   }
 
+  // Get bus tracking notifications for a specific recipient
+  Stream<QuerySnapshot> getBusTrackingNotificationsForRecipient(String recipientId) {
+    return notificationsCollection
+        .where('type', isEqualTo: 'bus_tracking')
+        .where('recipientId', isEqualTo: recipientId)
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
+  // Get all notifications
+  Stream<QuerySnapshot> getAllNotifications() {
+    return notificationsCollection
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
   // Get notifications for current user
   Stream<List<app_models.Notification>> getUserNotifications() {
     final user = _auth.currentUser;

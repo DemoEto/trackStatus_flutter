@@ -134,6 +134,11 @@ class UserService {
     return null;
   }
 
+  // Get all users
+  Stream<QuerySnapshot> getAllUsers() {
+    return _firestore.collection('Users').snapshots();
+  }
+
   // Get users by role
   Stream<QuerySnapshot> getUsersByRole(String role) {
     return _firestore

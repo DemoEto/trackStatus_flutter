@@ -4,8 +4,8 @@ import 'package:trackstatus_flutter/pages/admin/add_user_page.dart';
 import 'package:trackstatus_flutter/pages/admin/add_attendance_page.dart';
 import 'package:trackstatus_flutter/pages/admin/edit_user_page.dart';
 import 'package:trackstatus_flutter/pages/admin/edit_attendance_page.dart';
-import 'package:trackstatus_flutter/pages/admin/attendance_manament_page.dart';
-import 'package:trackstatus_flutter/pages/admin/users_manament_page.dart';
+import 'package:trackstatus_flutter/pages/admin/attendance_management_page.dart';
+import 'package:trackstatus_flutter/pages/admin/users_management_page.dart';
 import 'package:trackstatus_flutter/pages/admin/notification_management_page.dart';
 import 'package:trackstatus_flutter/pages/follow_bus/follow_vehicle_page.dart';
 import 'package:trackstatus_flutter/pages/qr_code/qr_scanner_page.dart';
@@ -15,7 +15,7 @@ import '../pages/announcement/notification_history_page.dart';
 import '../pages/services/service_page.dart';
 import '../pages/home/home_page.dart';
 import '../pages/login/login_page.dart';
-import '../pages/scan_history/attend_history_page.dart';
+import '../pages/scan_history/attendance_history_page.dart';
 import '../pages/qr_code/qr_checkin_page.dart';
 import 'package:trackstatus_flutter/pages/my_vehicle/vehicle_page.dart';
 import '../pages/admin/admin_management_page.dart';
@@ -87,11 +87,11 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const HomePage(),
     ),
     GoRoute(
-      path: AppRoutes.attendHistory, //'/attendHistory'
-      builder: (context, state) => const AttendHistoryPage(),
+      path: AppRoutes.attendanceHistory, //'/attendance-history'
+      builder: (context, state) => const AttendanceHistoryPage(),
     ),
     GoRoute(
-      path: AppRoutes.service,
+      path: AppRoutes.services,
       builder: (context, state) => const ServicesPage(),
     ),
     GoRoute(
@@ -174,7 +174,7 @@ final GoRouter router = GoRouter(
 
     GoRoute(
       path: AppRoutes.attendanceManagement,
-      builder: (context, state) => const AttendanceManamentPage(),
+      builder: (context, state) => const AttendanceManagementPage(),
     ),
     GoRoute(
       path: AppRoutes.addAttendance,
@@ -193,7 +193,7 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const NotificationManagementPage(),
     ),
     GoRoute(
-      path: '/notifications',
+      path: AppRoutes.notifications,
       builder: (context, state) => const NotificationHistoryPage(),
     ),
     GoRoute(

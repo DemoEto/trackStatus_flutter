@@ -22,10 +22,10 @@ class AdminManagementPage extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withOpacity(0.1),
+              color: Colors.Theme.of(context).colorScheme.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Colors.deepPurple),
+            child: Icon(icon, color: Colors.Theme.of(context).colorScheme.primary),
           ),
           title: Text(
             title,

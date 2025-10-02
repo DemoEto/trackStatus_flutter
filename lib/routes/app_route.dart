@@ -1,25 +1,34 @@
 class AppRoutes {
+  // Authentication Routes
   static const String login = '/login';
-  static const String home = '/home';
-  static const String attendHistory = '/attendHistory';
-  static const String service = '/service';
-  static const String qrCheckin = '/qrCheckin';
-  static const String qrCheckinScan = '/qrCheckinScan';
-  // static const String qrCheckinID = '/qrCheckinID';
-  static const String academicProfile = '/academicProfile';
-  static const String followVehicle = '/followVehicle';
-  static const String vehicle = '/vehicle';
-  static const String qrScan = '/qrScan';
-  static const String adminManagement = '/adminManagement';
-  static const String homework = '/homework';
-
-  static const String usersManagement = '/usersManagement';
-  static const String addUser = '/addUser';
-  static const String editUser = '/editUser';
-
-  static const String attendanceManagement = '/attendanceManagement';
-  static const String addAttendance = '/addAttendance';
-  static const String editAttendance = '/editAttendance';
   
-  static const String notificationManagement = '/notificationManagement';
+  // Main Navigation Routes
+  static const String home = '/home';
+  static const String services = '/services';
+  static const String notifications = '/notifications';
+  
+  // Attendance Routes
+  static const String attendanceHistory = '/attendance-history';
+  static const String qrCheckin = '/qr-checkin';
+  static const String qrScan = '/qr-scanner';
+  static const String qrCheckinScan = '/qr-checkin-scan';
+  
+  // Academic Routes
+  static const String academicProfile = '/academic-profile';
+  static const String homework = '/homework';
+  static const String homeworkAssignment = '/homework/assignment';
+  
+  // Transportation Routes
+  static const String followVehicle = '/follow-vehicle';
+  static const String vehicle = '/vehicle';
+  
+  // Admin Management Routes
+  static const String adminManagement = '/admin/management';
+  static const String usersManagement = '/admin/users';
+  static const String addUser = '/admin/users/add';
+  static const String editUser = '/admin/users/edit';
+  static const String attendanceManagement = '/admin/attendance';
+  static const String addAttendance = '/admin/attendance/add';
+  static const String editAttendance = '/admin/attendance/edit';
+  static const String notificationManagement = '/admin/notifications';
 }

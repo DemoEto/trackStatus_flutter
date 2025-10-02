@@ -4,17 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:trackstatus_flutter/routes/app_route.dart';
 import '../../services/attendance_service.dart';
 
-class AttendanceManamentPage extends StatelessWidget {
-  const AttendanceManamentPage({super.key});
-  
-  final AttendanceService _attendanceService = AttendanceService();
+class AttendanceManagementPage extends StatelessWidget {
+  const AttendanceManagementPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final AttendanceService attendanceService = AttendanceService();
     return Scaffold(
       appBar: AppBar(title: const Text("Attendance Management")),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Attendance').snapshots(),
+        stream: attendanceService.getAllAttendanceRecords(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -57,7 +56,8 @@ class AttendanceManamentPage extends StatelessWidget {
                             icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () async {
                               try {
-                                await _attendanceService.deleteAttendance(doc.id);
+                                await attendanceService.deleteAttendance(doc.id);
+                              } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('ลบข้อมูลการมาเรียนเรียบร้อย')),

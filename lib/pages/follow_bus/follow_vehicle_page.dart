@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 import '../../services/notification_service.dart';
@@ -13,33 +13,15 @@ class FollowVehiclePage extends StatefulWidget {
 
 class _FollowVehiclePageState extends State<FollowVehiclePage> {
   String status = "";
-  String? _userRole;
   
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final PageController _pageController = PageController();
+  final UserService _userService = UserService();
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
-    _loadUserRole();
-  }
-
-  Future<void> _loadUserRole() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      try {
-        DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-        String? role = userDoc.get('role') as String?;
-        if (mounted) {
-          setState(() {
-            _userRole = role;
-          });
-        }
-      } catch (e) {
-        debugPrint('Error loading user role: $e');
-      }
-    }
   }
 
   // Handle bus departure to school
@@ -49,9 +31,9 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
     try {
       // Get driver's bus assignment
-      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-      String? busId = userDoc.get('busId') as String?;
-      String? driverName = userDoc.get('name') as String?;
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String? busId = userData?['busId'] as String?;
+      String? driverName = userData?['name'] as String?;
       if (busId == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -62,11 +44,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       }
 
       // Get students assigned to this bus
-      QuerySnapshot studentSnapshot = await _firestore
-          .collection('Users')
-          .where('busId', isEqualTo: busId)
-          .where('role', isEqualTo: 'student')
-          .get();
+      QuerySnapshot studentSnapshot = await _userService.getStudentsOnBus(busId).first;
 
       List<String> studentIds = studentSnapshot.docs.map((doc) => doc.id).toList();
 
@@ -138,9 +116,9 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
     try {
       // Get driver's bus assignment
-      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-      String? busId = userDoc.get('busId') as String?;
-      String? driverName = userDoc.get('name') as String?;
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String? busId = userData?['busId'] as String?;
+      String? driverName = userData?['name'] as String?;
       if (busId == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -151,11 +129,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       }
 
       // Get students assigned to this bus
-      QuerySnapshot studentSnapshot = await _firestore
-          .collection('Users')
-          .where('busId', isEqualTo: busId)
-          .where('role', isEqualTo: 'student')
-          .get();
+      QuerySnapshot studentSnapshot = await _userService.getStudentsOnBus(busId).first;
 
       List<String> studentIds = studentSnapshot.docs.map((doc) => doc.id).toList();
 
@@ -227,9 +201,9 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
     try {
       // Get driver's bus assignment
-      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-      String? busId = userDoc.get('busId') as String?;
-      String? driverName = userDoc.get('name') as String?;
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String? busId = userData?['busId'] as String?;
+      String? driverName = userData?['name'] as String?;
       if (busId == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -240,11 +214,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       }
 
       // Get students assigned to this bus
-      QuerySnapshot studentSnapshot = await _firestore
-          .collection('Users')
-          .where('busId', isEqualTo: busId)
-          .where('role', isEqualTo: 'student')
-          .get();
+      QuerySnapshot studentSnapshot = await _userService.getStudentsOnBus(busId).first;
 
       List<String> studentIds = studentSnapshot.docs.map((doc) => doc.id).toList();
 
@@ -316,9 +286,9 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
     try {
       // Get driver's bus assignment
-      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-      String? busId = userDoc.get('busId') as String?;
-      String? driverName = userDoc.get('name') as String?;
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String? busId = userData?['busId'] as String?;
+      String? driverName = userData?['name'] as String?;
       if (busId == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -395,9 +365,9 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
     try {
       // Get driver's bus assignment
-      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-      String? busId = userDoc.get('busId') as String?;
-      String? driverName = userDoc.get('name') as String?;
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String? busId = userData?['busId'] as String?;
+      String? driverName = userData?['name'] as String?;
       if (busId == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -477,11 +447,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       String? busId = userDoc.get('busId') as String?;
       if (busId == null) return [];
 
-      QuerySnapshot studentSnapshot = await _firestore
-          .collection('Users')
-          .where('busId', isEqualTo: busId)
-          .where('role', isEqualTo: 'student')
-          .get();
+      QuerySnapshot studentSnapshot = await _userService.getStudentsOnBus(busId).first;
 
       return studentSnapshot.docs.map((doc) {
         return {
@@ -498,28 +464,35 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_userRole == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    // Driver view
-    if (_userRole == 'driver') {
-      return _buildDriverView();
-    }
-    // Parent view
-    else if (_userRole == 'parent') {
-      return _buildParentView();
-    }
-    // Student view
-    else if (_userRole == 'student') {
-      return _buildStudentView();
-    }
-    // Default view for other roles
-    else {
-      return _buildDefaultView();
-    }
+    return FutureBuilder<DocumentSnapshot>(
+      future: _firestore.collection('Users').doc(_auth.currentUser?.uid).get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting || !snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        
+        String? userRole = snapshot.data!.get('role') as String?;
+        
+        // Driver view
+        if (userRole == 'driver') {
+          return _buildDriverView();
+        }
+        // Parent view
+        else if (userRole == 'parent') {
+          return _buildParentView();
+        }
+        // Student view
+        else if (userRole == 'student') {
+          return _buildStudentView();
+        }
+        // Default view for other roles
+        else {
+          return _buildDefaultView();
+        }
+      },
+    );
   }
 
   // Driver view with interactive controls

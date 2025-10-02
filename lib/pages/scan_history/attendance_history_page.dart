@@ -8,38 +8,22 @@ import 'package:flutter/foundation.dart'; // for debugPrint
 import '../../services/attendance_service.dart';
 import '../../services/user_service.dart';
 
-class AttendHistoryPage extends StatefulWidget {
-  const AttendHistoryPage({super.key});
+class AttendanceHistoryPage extends StatefulWidget {
+  const AttendanceHistoryPage({super.key});
 
   @override
-  State<AttendHistoryPage> createState() => _AttendHistoryPageState();
+  State<AttendanceHistoryPage> createState() => _AttendanceHistoryPageState();
 }
 
-class _AttendHistoryPageState extends State<AttendHistoryPage> {
+class _AttendanceHistoryPageState extends State<AttendanceHistoryPage> {
   final AttendanceService _attendanceService = AttendanceService();
   final UserService _userService = UserService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   DateTime _selectedMonth = DateTime.now();
-  String? _userRole;
 
   @override
   void initState() {
     super.initState();
-    _loadUserRole();
-  }
-
-  Future<void> _loadUserRole() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      try {
-        String? role = await _userService.getUserRole(user.uid);
-        setState(() {
-          _userRole = role;
-        });
-      } catch (e) {
-        debugPrint('Error loading user role: $e');
-      }
-    }
   }
 
   Future<void> _selectMonth() async {
@@ -52,7 +36,7 @@ class _AttendHistoryPageState extends State<AttendHistoryPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Colors.deepPurple,
+              primary: Colors.Theme.of(context).colorScheme.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -125,9 +109,18 @@ class _AttendHistoryPageState extends State<AttendHistoryPage> {
           
           // History list - different approach for different roles
           Expanded(
-            child: _userRole == 'parent' 
-                ? _buildParentAttendanceHistory()
-                : _buildGeneralAttendanceHistory(),
+            child: FutureBuilder<String?>(
+              future: _auth.currentUser != null ? _userService.getUserRole(_auth.currentUser!.uid) : Future.value(null),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                String? userRole = snapshot.data;
+                return userRole == 'parent' 
+                    ? _buildParentAttendanceHistory()
+                    : _buildGeneralAttendanceHistory();
+              },
+            ),
           ),
         ],
       ),
@@ -291,14 +284,22 @@ class _AttendHistoryPageState extends State<AttendHistoryPage> {
     DateTime endOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
 
     // For student role, show their own attendance; for other roles, we'll need different logic
-    String userId = _userRole == 'student' ? user.uid : user.uid;
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: _attendanceService.getAttendanceForStudent(userId, startOfMonth, endOfMonth),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return FutureBuilder<String?>(
+      future: _userService.getUserRole(user.uid),
+      builder: (context, roleSnapshot) {
+        if (roleSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
+        
+        String? userRole = roleSnapshot.data;
+        String userId = userRole == 'student' ? user.uid : user.uid;
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: _attendanceService.getAttendanceForStudent(userId, startOfMonth, endOfMonth),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
         if (snapshot.hasError) {
           return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));

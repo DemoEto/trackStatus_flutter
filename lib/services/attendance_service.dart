@@ -10,6 +10,11 @@ class AttendanceService {
   final NotificationService _notificationService = NotificationService();
   final UserService _userService = UserService();
 
+  // Get all attendance records
+  Stream<QuerySnapshot> getAllAttendanceRecords() {
+    return _firestore.collection('Attendance').snapshots();
+  }
+
   // Get attendance records for a student
   Stream<QuerySnapshot> getAttendanceForStudent(String studentId, DateTime startOfMonth, DateTime endOfMonth) {
     return _firestore
