@@ -57,7 +57,6 @@ class AttendanceManagementPage extends StatelessWidget {
                             onPressed: () async {
                               try {
                                 await attendanceService.deleteAttendance(doc.id);
-                              } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('ลบข้อมูลการมาเรียนเรียบร้อย')),

@@ -35,8 +35,8 @@ class _AttendanceHistoryPageState extends State<AttendanceHistoryPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.Theme.of(context).colorScheme.primary,
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).colorScheme.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -301,83 +301,85 @@ class _AttendanceHistoryPageState extends State<AttendanceHistoryPage> {
               return const Center(child: CircularProgressIndicator());
             }
 
-        if (snapshot.hasError) {
-          return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
-        }
+            if (snapshot.hasError) {
+              return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
+            }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.history, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'ไม่มีประวัติการแสกนในเดือนนี้',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
-
-        final attendanceRecords = snapshot.data!.docs;
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(8),
-          itemCount: attendanceRecords.length,
-          itemBuilder: (context, index) {
-            final record = attendanceRecords[index];
-            Map<String, dynamic> data = record.data() as Map<String, dynamic>;
-            
-            Timestamp? timestamp = data['timestamp'] as Timestamp?;
-            DateTime date = timestamp?.toDate() ?? DateTime.now();
-            String status = data['status'] ?? 'ไม่ทราบสถานะ';
-            String studentName = data['name'] ?? 'ไม่ทราบชื่อ';
-            String studentId = data['studentId'] ?? 'ไม่ทราบ ID';
-
-            Color statusColor = _getStatusColor(status);
-            IconData statusIcon = _getStatusIcon(status);
-
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Icon(statusIcon, color: statusColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          _getStatusText(status),
-                          style: TextStyle(
-                            color: statusColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
+                    Icon(Icons.history, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
                     Text(
-                      'ชื่อนักเรียน: $studentName',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    Text(
-                      'รหัสนักเรียน: $studentId',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'วันที่: ${DateFormat('dd/MM/yyyy HH:mm', 'th_TH').format(date)}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      'ไม่มีประวัติการแสกนในเดือนนี้',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   ],
                 ),
-              ),
+              );
+            }
+
+            final attendanceRecords = snapshot.data!.docs;
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: attendanceRecords.length,
+              itemBuilder: (context, index) {
+                final record = attendanceRecords[index];
+                Map<String, dynamic> data = record.data() as Map<String, dynamic>;
+                
+                Timestamp? timestamp = data['timestamp'] as Timestamp?;
+                DateTime date = timestamp?.toDate() ?? DateTime.now();
+                String status = data['status'] ?? 'ไม่ทราบสถานะ';
+                String studentName = data['name'] ?? 'ไม่ทราบชื่อ';
+                String studentId = data['studentId'] ?? 'ไม่ทราบ ID';
+
+                Color statusColor = _getStatusColor(status);
+                IconData statusIcon = _getStatusIcon(status);
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(statusIcon, color: statusColor),
+                            const SizedBox(width: 8),
+                            Text(
+                              _getStatusText(status),
+                              style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'ชื่อนักเรียน: $studentName',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          'รหัสนักเรียน: $studentId',
+                          style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'วันที่: ${DateFormat('dd/MM/yyyy HH:mm', 'th_TH').format(date)}',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             );
           },
         );

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 import '../../services/notification_service.dart';
 import '../../services/user_service.dart';
+import '../../services/bus_tracking_service.dart';
 
 class FollowVehiclePage extends StatefulWidget {
   const FollowVehiclePage({super.key});
@@ -19,7 +20,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final PageController _pageController = PageController();
   final UserService _userService = UserService();
-  final NotificationService _notificationService = NotificationService();
+  final BusTrackingService _busTrackingService = BusTrackingService();
 
   @override
   void initState() {
@@ -699,7 +700,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _getParentBusTrackingStream(),
+        stream: _busTrackingService.getParentBusTrackingStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -748,7 +749,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _getStudentBusTrackingStream(),
+        stream: _busTrackingService.getStudentBusTrackingStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -789,55 +790,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
     );
   }
 
-  // Stream for parent to get bus tracking notifications for their children
-  Stream<QuerySnapshot> _getParentBusTrackingStream() {
-    final user = _auth.currentUser;
-    if (user == null) {
-      return const Stream.empty();
-    }
-
-    // Get the user document to find their children
-    return _firestore
-        .collection('Users')
-        .doc(user.uid)
-        .snapshots()
-        .asyncMap((userDoc) async {
-      List<dynamic>? children = userDoc.get('children') as List<dynamic>?;
-      if (children == null || children.isEmpty) {
-        // Return empty query if no children
-        return await _firestore
-            .collection('Notifications')
-            .where('type', isEqualTo: 'bus_tracking')
-            .where('recipientId', isEqualTo: user.uid) // Only notifications for this parent
-            .orderBy('timestamp', descending: true)
-            .limit(10) // Limit to recent notifications
-            .get();
-      }
-
-      // Get bus tracking notifications related to their children
-      return await _firestore
-          .collection('Notifications')
-          .where('type', isEqualTo: 'bus_tracking')
-          .where('recipientId', isEqualTo: user.uid) // Notifications for this parent
-          .orderBy('timestamp', descending: true)
-          .get();
-    });
-  }
-
-  // Stream for student to get their own bus tracking notifications
-  Stream<QuerySnapshot> _getStudentBusTrackingStream() {
-    final user = _auth.currentUser;
-    if (user == null) {
-      return const Stream.empty();
-    }
-
-    return _firestore
-        .collection('Notifications')
-        .where('type', isEqualTo: 'bus_tracking')
-        .where('recipientId', isEqualTo: user.uid) // Notifications for this student
-        .orderBy('timestamp', descending: true)
-        .snapshots();
-  }
+  
 
   // Build a card for bus tracking information
   Widget _buildBusTrackingCard(Map<String, dynamic> trackingData) {

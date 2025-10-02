@@ -119,8 +119,9 @@ class NotificationService {
   }
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  CollectionReference get notificationsCollection => FirebaseFirestore.instance.collection('notifications');
+  CollectionReference get notificationsCollection => _firestore.collection('notifications');
 
   /// Create a notification record in Firestore
   Future<String> createFirestoreNotification({
@@ -174,23 +175,38 @@ class NotificationService {
         .snapshots();
   }
 
-  // Get notifications for current user
+  // Get user's notifications from Firestore
   Stream<List<app_models.Notification>> getUserNotifications() {
     final user = _auth.currentUser;
     if (user == null) {
       return const Stream.empty();
     }
 
-    return notificationsCollection
+    return _firestore
+        .collection('Notifications')
         .where('recipientId', isEqualTo: user.uid)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => app_models.Notification.fromMap(doc.data() as Map<String, dynamic>))
-          .toList();
+      return snapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return app_models.Notification(
+          id: doc.id,
+          title: data['title'] as String? ?? '',
+          body: data['body'] as String? ?? '',
+          type: data['type'] as String? ?? '',
+          senderId: data['senderId'] as String? ?? '',
+          senderName: data['senderName'] as String? ?? '',
+          recipientId: data['recipientId'] as String? ?? '',
+          timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          isRead: data['isRead'] as bool? ?? false,
+          payload: data['payload'] as Map<String, dynamic>? ?? {},
+        );
+      }).toList();
     });
   }
+
+  
 
   // Mark notification as read
   Future<void> markAsRead(String notificationId) async {

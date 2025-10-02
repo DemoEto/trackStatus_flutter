@@ -72,10 +72,10 @@ class UsersManagementPage extends StatelessWidget {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Icon(Icons.person, color: Colors.Theme.of(context).colorScheme.primary),
+                            child: Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
                           ),
                           title: Text(data['name'] ?? 'ไม่ทราบชื่อ'),
                           subtitle: Text('${data['id'] ?? ''} - ${data['role'] ?? ''}'),
@@ -93,8 +93,7 @@ class UsersManagementPage extends StatelessWidget {
                                 icon: const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () async {
                                   try {
-                            await userService.deleteUser(doc.id);
-                          } catch (e) {
+                                    await userService.deleteUser(doc.id);
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('ลบผู้ใช้เรียบร้อย')),

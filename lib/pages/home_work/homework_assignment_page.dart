@@ -133,6 +133,7 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
         description: _descriptionController.text.trim(),
         dueDate: _selectedDueDate!,
         assignedStudentIds: _assignedStudentIds,
+        subjectId: 'default_subject', // TODO: Add subject selection functionality
         teacherId: user.uid,
         teacherName: teacherName,
       );
