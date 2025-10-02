@@ -35,7 +35,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   List<Map<String, dynamic>> scannedStudents = []; // เก็บนักเรียนที่สแกนเข้ามา
 
   final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
+  // final _firestore = FirebaseFirestore.instance; // Removed: Use service only
   final userService = UserService();
   final attendanceService = AttendanceService();
   final uid = FirebaseAuth.instance.currentUser?.uid;

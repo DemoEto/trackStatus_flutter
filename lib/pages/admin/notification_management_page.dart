@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' show QuerySnapshot, Timestamp;
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/notification_service.dart';
 import '../../services/user_service.dart';
-import '../../models/notification_model.dart' as app_models;
+// import '../../models/notification_model.dart' as app_models;
 
 class NotificationManagementPage extends StatefulWidget {
   const NotificationManagementPage({super.key});

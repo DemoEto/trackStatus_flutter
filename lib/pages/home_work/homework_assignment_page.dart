@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' show QuerySnapshot;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 import '../../services/notification_service.dart';
