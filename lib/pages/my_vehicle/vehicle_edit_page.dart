@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/vehicle_service.dart';
 
 class VehicleEditPage extends StatefulWidget {
   final String vehicleId;
@@ -23,6 +24,7 @@ class VehicleEditPage extends StatefulWidget {
 class _VehicleEditPageState extends State<VehicleEditPage> {
   late TextEditingController _licensePlateController;
   File? _imageFile;
+  final VehicleService _vehicleService = VehicleService();
   bool _isLoading = false;
 
   @override
@@ -65,13 +67,11 @@ class _VehicleEditPageState extends State<VehicleEditPage> {
         imageUrl = await snapshot.ref.getDownloadURL();
       }
 
-      await FirebaseFirestore.instance
-          .collection("vehicles")
-          .doc(widget.vehicleId)
-          .update({
-        "licensePlate": _licensePlateController.text.trim(),
-        "imageUrl": imageUrl,
-      });
+      await _vehicleService.updateVehicle(
+        vehicleId: widget.vehicleId,
+        licensePlate: _licensePlateController.text.trim(),
+        imageUrl: imageUrl,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

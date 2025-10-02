@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import '../utils/notification_helper.dart';
+import 'notification_service.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -39,13 +39,24 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  // Update user's FCM token in Firestore
+  Future<void> _updateUserTokenInFirestore(String userId, String token) async {
+    try {
+      await _firestore.collection('Users').doc(userId).set({
+        'fcmToken': token,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print('Error updating user token: $e');
+    }
+  }
+
   // Update user's FCM token when they log in
   Future<void> _updateUserToken(String userId) async {
     try {
       // Setup token refresh listener for automatic updates
-      _firebaseMessaging.onTokenRefresh.listen((token) {
+      _firebaseMessaging.onTokenRefresh.listen((token) async {
         print('FCM token refreshed for user $userId: $token');
-        NotificationHelper.updateUserToken(userId, token);
+        await _updateUserTokenInFirestore(userId, token);
       }).onError((error) {
         print('Error listening for token refresh for user $userId: $error');
       });
@@ -54,7 +65,7 @@ class AuthService extends ChangeNotifier {
       String? token = await _firebaseMessaging.getToken();
       if (token != null) {
         print('FCM token retrieved for user $userId: $token');
-        await NotificationHelper.updateUserToken(userId, token);
+        await _updateUserTokenInFirestore(userId, token);
       } else {
         print('FCM token not available yet for user $userId. Waiting for token refresh.');
       }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
-import '../../utils/notification_helper.dart';
+import '../../services/notification_service.dart';
 
 class FollowVehiclePage extends StatefulWidget {
   const FollowVehiclePage({super.key});
@@ -70,14 +70,8 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
       List<String> studentIds = studentSnapshot.docs.map((doc) => doc.id).toList();
 
-      // Call notification function
-      await NotificationHelper.handleBusDepartureToSchool(
-        busId: busId,
-        driverId: user.uid,
-        studentIds: studentIds,
-      );
-
-      // Also send notifications to parents of these students
+      // Use NotificationService to send notifications to parents of these students
+      final notificationService = NotificationService();
       for (String studentId in studentIds) {
         // Find parents of this student
         QuerySnapshot parentSnapshot = await _firestore
@@ -88,19 +82,40 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
         for (var parentDoc in parentSnapshot.docs) {
           List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
           if (children != null && children.contains(studentId)) {
-            await NotificationHelper.createFirestoreNotification(
-              userId: parentDoc.id,
+            String? deviceToken = parentDoc.get('fcmToken') as String?;
+
+            // Create a Firestore notification for the parent
+            String notificationId = await notificationService.createFirestoreNotification(
               title: 'รถโรงเรียนกำลังเดินทาง',
               body: 'รถโรงเรียนของคุณ $driverName กำลังเดินทางไปรับนักเรียนที่โรงเรียน',
               type: 'bus_tracking',
+              senderId: user.uid,
               senderName: driverName ?? 'คนขับรถ',
+              recipientId: parentDoc.id,
               payload: {
                 'busId': busId,
                 'driverId': user.uid,
+                'studentId': studentId,
                 'action': 'departure_to_school',
                 'timestamp': Timestamp.now().toDate().toString(),
               },
             );
+
+            // Send push notification to the parent if device token is available
+            if (deviceToken != null) {
+              await notificationService.sendPushNotification(
+                deviceToken: deviceToken,
+                title: 'รถโรงเรียนกำลังเดินทาง',
+                body: 'รถโรงเรียนของคุณ $driverName กำลังเดินทางไปรับนักเรียนที่โรงเรียน',
+                data: {
+                  'type': 'bus_tracking',
+                  'notificationId': notificationId,
+                  'busId': busId,
+                  'studentId': studentId,
+                  'action': 'departure_to_school',
+                },
+              );
+            }
           }
         }
       }
@@ -144,14 +159,8 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
       List<String> studentIds = studentSnapshot.docs.map((doc) => doc.id).toList();
 
-      // Call notification function
-      await NotificationHelper.handleBusArrivalAtSchool(
-        busId: busId,
-        driverId: user.uid,
-        studentIds: studentIds,
-      );
-
-      // Send notifications to parents of these students
+      // Use NotificationService to send notifications to parents of these students
+      final notificationService = NotificationService();
       for (String studentId in studentIds) {
         // Find parents of this student
         QuerySnapshot parentSnapshot = await _firestore
@@ -162,19 +171,40 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
         for (var parentDoc in parentSnapshot.docs) {
           List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
           if (children != null && children.contains(studentId)) {
-            await NotificationHelper.createFirestoreNotification(
-              userId: parentDoc.id,
+            String? deviceToken = parentDoc.get('fcmToken') as String?;
+
+            // Create a Firestore notification for the parent
+            String notificationId = await notificationService.createFirestoreNotification(
               title: 'รถโรงเรียนถึงโรงเรียนแล้ว',
               body: 'รถโรงเรียนของคุณ $driverName ได้ส่งนักเรียนถึงโรงเรียนเรียบร้อย',
               type: 'bus_tracking',
+              senderId: user.uid,
               senderName: driverName ?? 'คนขับรถ',
+              recipientId: parentDoc.id,
               payload: {
                 'busId': busId,
                 'driverId': user.uid,
+                'studentId': studentId,
                 'action': 'arrival_at_school',
                 'timestamp': Timestamp.now().toDate().toString(),
               },
             );
+
+            // Send push notification to the parent if device token is available
+            if (deviceToken != null) {
+              await notificationService.sendPushNotification(
+                deviceToken: deviceToken,
+                title: 'รถโรงเรียนถึงโรงเรียนแล้ว',
+                body: 'รถโรงเรียนของคุณ $driverName ได้ส่งนักเรียนถึงโรงเรียนเรียบร้อย',
+                data: {
+                  'type': 'bus_tracking',
+                  'notificationId': notificationId,
+                  'busId': busId,
+                  'studentId': studentId,
+                  'action': 'arrival_at_school',
+                },
+              );
+            }
           }
         }
       }
@@ -218,14 +248,8 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
       List<String> studentIds = studentSnapshot.docs.map((doc) => doc.id).toList();
 
-      // Call notification function
-      await NotificationHelper.handleBusDepartureToHome(
-        busId: busId,
-        driverId: user.uid,
-        studentIds: studentIds,
-      );
-
-      // Send notifications to parents of these students
+      // Use NotificationService to send notifications to parents of these students
+      final notificationService = NotificationService();
       for (String studentId in studentIds) {
         // Find parents of this student
         QuerySnapshot parentSnapshot = await _firestore
@@ -236,19 +260,40 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
         for (var parentDoc in parentSnapshot.docs) {
           List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
           if (children != null && children.contains(studentId)) {
-            await NotificationHelper.createFirestoreNotification(
-              userId: parentDoc.id,
+            String? deviceToken = parentDoc.get('fcmToken') as String?;
+
+            // Create a Firestore notification for the parent
+            String notificationId = await notificationService.createFirestoreNotification(
               title: 'รถโรงเรียนกำลังเดินทางกลับบ้าน',
               body: 'รถโรงเรียนของคุณ $driverName กำลังเดินทางกลับบ้าน',
               type: 'bus_tracking',
+              senderId: user.uid,
               senderName: driverName ?? 'คนขับรถ',
+              recipientId: parentDoc.id,
               payload: {
                 'busId': busId,
                 'driverId': user.uid,
+                'studentId': studentId,
                 'action': 'departure_to_home',
                 'timestamp': Timestamp.now().toDate().toString(),
               },
             );
+
+            // Send push notification to the parent if device token is available
+            if (deviceToken != null) {
+              await notificationService.sendPushNotification(
+                deviceToken: deviceToken,
+                title: 'รถโรงเรียนกำลังเดินทางกลับบ้าน',
+                body: 'รถโรงเรียนของคุณ $driverName กำลังเดินทางกลับบ้าน',
+                data: {
+                  'type': 'bus_tracking',
+                  'notificationId': notificationId,
+                  'busId': busId,
+                  'studentId': studentId,
+                  'action': 'departure_to_home',
+                },
+              );
+            }
           }
         }
       }
@@ -283,15 +328,8 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
         return;
       }
 
-      // Call notification function
-      await NotificationHelper.handleStudentBusPickup(
-        studentId: studentId,
-        studentName: studentName,
-        busId: busId,
-        location: 'สถานที่รับ',
-      );
-
-      // Send notification to parent of this student
+      // Use NotificationService to send notification to parent of this student
+      final notificationService = NotificationService();
       QuerySnapshot parentSnapshot = await _firestore
           .collection('Users')
           .where('role', isEqualTo: 'parent')
@@ -300,20 +338,42 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       for (var parentDoc in parentSnapshot.docs) {
         List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
         if (children != null && children.contains(studentId)) {
-          await NotificationHelper.createFirestoreNotification(
-            userId: parentDoc.id,
+          String? deviceToken = parentDoc.get('fcmToken') as String?;
+
+          // Create a Firestore notification for the parent
+          String notificationId = await notificationService.createFirestoreNotification(
             title: 'รับนักเรียนขึ้นรถ',
             body: 'นักเรียน $studentName ได้ขึ้นรถของคุณ $driverName เรียบร้อยแล้ว',
             type: 'bus_tracking',
+            senderId: user.uid,
             senderName: driverName ?? 'คนขับรถ',
+            recipientId: parentDoc.id,
             payload: {
               'busId': busId,
               'driverId': user.uid,
               'studentId': studentId,
+              'studentName': studentName,
               'action': 'student_pickup',
               'timestamp': Timestamp.now().toDate().toString(),
             },
           );
+
+          // Send push notification to the parent if device token is available
+          if (deviceToken != null) {
+            await notificationService.sendPushNotification(
+              deviceToken: deviceToken,
+              title: 'รับนักเรียนขึ้นรถ',
+              body: 'นักเรียน $studentName ได้ขึ้นรถของคุณ $driverName เรียบร้อยแล้ว',
+              data: {
+                'type': 'bus_tracking',
+                'notificationId': notificationId,
+                'busId': busId,
+                'studentId': studentId,
+                'studentName': studentName,
+                'action': 'student_pickup',
+              },
+            );
+          }
         }
       }
 
@@ -347,15 +407,8 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
         return;
       }
 
-      // Call notification function
-      await NotificationHelper.handleStudentBusDropoffAtHome(
-        studentId: studentId,
-        studentName: studentName,
-        busId: busId,
-        location: 'สถานที่ส่ง',
-      );
-
-      // Send notification to parent of this student
+      // Use NotificationService to send notification to parent of this student
+      final notificationService = NotificationService();
       QuerySnapshot parentSnapshot = await _firestore
           .collection('Users')
           .where('role', isEqualTo: 'parent')
@@ -364,20 +417,42 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       for (var parentDoc in parentSnapshot.docs) {
         List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
         if (children != null && children.contains(studentId)) {
-          await NotificationHelper.createFirestoreNotification(
-            userId: parentDoc.id,
+          String? deviceToken = parentDoc.get('fcmToken') as String?;
+
+          // Create a Firestore notification for the parent
+          String notificationId = await notificationService.createFirestoreNotification(
             title: 'ส่งนักเรียนถึงบ้าน',
             body: 'นักเรียน $studentName ถึงบ้านเรียบร้อยแล้ว',
             type: 'bus_tracking',
+            senderId: user.uid,
             senderName: driverName ?? 'คนขับรถ',
+            recipientId: parentDoc.id,
             payload: {
               'busId': busId,
               'driverId': user.uid,
               'studentId': studentId,
+              'studentName': studentName,
               'action': 'student_dropoff',
               'timestamp': Timestamp.now().toDate().toString(),
             },
           );
+
+          // Send push notification to the parent if device token is available
+          if (deviceToken != null) {
+            await notificationService.sendPushNotification(
+              deviceToken: deviceToken,
+              title: 'ส่งนักเรียนถึงบ้าน',
+              body: 'นักเรียน $studentName ถึงบ้านเรียบร้อยแล้ว',
+              data: {
+                'type': 'bus_tracking',
+                'notificationId': notificationId,
+                'busId': busId,
+                'studentId': studentId,
+                'studentName': studentName,
+                'action': 'student_dropoff',
+              },
+            );
+          }
         }
       }
 

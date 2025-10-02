@@ -136,20 +136,23 @@ class _AttendHistoryPageState extends State<AttendHistoryPage> {
 
   // Build attendance history for parent role (showing children's attendance)
   Widget _buildParentAttendanceHistory() {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: _auth.currentUser != null 
-          ? FirebaseFirestore.instance.collection('Users').doc(_auth.currentUser!.uid).snapshots()
-          : null,
+    final user = _auth.currentUser;
+    if (user == null) {
+      return const Center(child: Text('กรุณาเข้าสู่ระบบ'));
+    }
+
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _userService.getUserById(user.uid),
       builder: (context, userSnapshot) {
         if (userSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+        if (!userSnapshot.hasData || userSnapshot.data == null) {
           return const Center(child: Text('ไม่พบข้อมูลผู้ใช้'));
         }
 
-        List<dynamic> children = userSnapshot.data!.get('children') ?? [];
+        List<dynamic> children = userSnapshot.data!['children'] ?? [];
         if (children.isEmpty) {
           return const Center(
             child: Column(

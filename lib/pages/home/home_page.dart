@@ -307,13 +307,9 @@ class _HomePageState extends State<HomePage> {
   // Helper method to get user info
   Future<Map<String, dynamic>?> _getUserInfo(String uid) async {
     try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(uid)
-          .get();
+      Map<String, dynamic>? userData = await userService.getUserById(uid);
       
-      if (userDoc.exists) {
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+      if (userData != null) {
         return {
           'name': userData['name'],
           'role': userData['role'],

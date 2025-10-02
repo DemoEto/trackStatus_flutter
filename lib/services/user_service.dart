@@ -6,6 +6,100 @@ class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Add a new user
+  Future<void> addUser({
+    required String role,
+    required String id,
+    required String name,
+    String? busId,
+    String? classRoomId,
+    String? phone,
+    List<String>? children,
+    String? subId,
+    String? drvId,
+  }) async {
+    try {
+      await _firestore.collection('Users').add({
+        'role': role,
+        'id': id,
+        'name': name,
+        'createdAt': FieldValue.serverTimestamp(),
+        // Conditional fields based on role
+        if (role == 'student' && busId != null) ...{
+          'busId': busId,
+          'classRoomId': classRoomId,
+        },
+        if (role == 'parent' && phone != null) ...{
+          'phone': phone,
+          'children': children,
+        },
+        if (role == 'teacher' && subId != null) ...{
+          'subId': subId,
+        },
+        if (role == 'driver' && busId != null && phone != null) ...{
+          'busId': busId,
+          'phone': phone,
+          if (drvId != null) 'drvId': drvId,
+        },
+      });
+    } catch (e) {
+      print('Error adding user: $e');
+      rethrow;
+    }
+  }
+
+  // Update an existing user
+  Future<void> updateUser({
+    required String userId,
+    String? role,
+    String? id,
+    String? name,
+    String? busId,
+    String? classRoomId,
+    String? phone,
+    List<String>? children,
+    String? subId,
+    String? drvId,
+  }) async {
+    try {
+      Map<String, dynamic> updateData = {};
+      
+      if (role != null) updateData['role'] = role;
+      if (id != null) updateData['id'] = id;
+      if (name != null) updateData['name'] = name;
+      
+      // Conditional fields based on role
+      if (role == 'student') {
+        if (busId != null) updateData['busId'] = busId;
+        if (classRoomId != null) updateData['classRoomId'] = classRoomId;
+      } else if (role == 'parent') {
+        if (phone != null) updateData['phone'] = phone;
+        if (children != null) updateData['children'] = children;
+      } else if (role == 'teacher') {
+        if (subId != null) updateData['subId'] = subId;
+      } else if (role == 'driver') {
+        if (busId != null) updateData['busId'] = busId;
+        if (phone != null) updateData['phone'] = phone;
+        if (drvId != null) updateData['drvId'] = drvId;
+      }
+
+      await _firestore.collection('Users').doc(userId).set(updateData, SetOptions(merge: true));
+    } catch (e) {
+      print('Error updating user: $e');
+      rethrow;
+    }
+  }
+
+  // Delete a user
+  Future<void> deleteUser(String userId) async {
+    try {
+      await _firestore.collection('Users').doc(userId).delete();
+    } catch (e) {
+      print('Error deleting user: $e');
+      rethrow;
+    }
+  }
+
   // Get user role
   Future<String?> getUserRole(String userId) async {
     try {

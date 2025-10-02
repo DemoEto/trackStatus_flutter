@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../utils/notification_helper.dart';
+import '../../services/notification_service.dart';
+import '../../services/assignment_service.dart';
+import '../../services/user_service.dart';
 
 class HomeworkSubmissionPage extends StatefulWidget {
   const HomeworkSubmissionPage({super.key});
@@ -12,7 +14,9 @@ class HomeworkSubmissionPage extends StatefulWidget {
 }
 
 class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
-  final _firestore = FirebaseFirestore.instance;
+  final AssignmentService _assignmentService = AssignmentService();
+  final UserService _userService = UserService();
+  final NotificationService _notificationService = NotificationService();
   final _auth = FirebaseAuth.instance;
 
   @override
@@ -32,8 +36,8 @@ class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
           },
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _getCurrentUserAssignments(),
+      body: StreamBuilder<List<QueryDocumentSnapshot>>(
+        stream: _assignmentService.getUserAssignments(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -43,7 +47,7 @@ class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
             return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -59,7 +63,7 @@ class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
             );
           }
 
-          final assignments = snapshot.data!.docs;
+          final assignments = snapshot.data!;
 
           return ListView.builder(
             padding: const EdgeInsets.all(8),
@@ -72,20 +76,6 @@ class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
         },
       ),
     );
-  }
-
-  Stream<QuerySnapshot> _getCurrentUserAssignments() {
-    final user = _auth.currentUser;
-    if (user == null) {
-      return const Stream.empty();
-    }
-
-    // Get assignments assigned to this student
-    return _firestore
-        .collection('Assignments')
-        .where('assignedStudentIds', arrayContains: user.uid)
-        .orderBy('dueDate', descending: false)
-        .snapshots();
   }
 
   Widget _buildAssignmentCard(DocumentSnapshot assignmentDoc) {
@@ -188,28 +178,16 @@ class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
     if (user == null) return;
 
     try {
-      // Get student name
-      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-      String studentName = userDoc.get('name') ?? 'ไม่ระบุชื่อ';
+      // Get student name using UserService
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String studentName = userData?['name'] ?? 'ไม่ระบุชื่อ';
 
-      // Update assignment status for this student
-      await _firestore.collection('Assignments')
-          .doc(assignmentId)
-          .collection('Submissions')
-          .doc(user.uid)
-          .set({
-            'studentId': user.uid,
-            'assignmentId': assignmentId,
-            'submittedAt': Timestamp.now(),
-            'status': 'submitted',
-          });
-
-      // Call notification function for homework submission
-      await NotificationHelper.handleHomeworkSubmitted(
+      // Update assignment status for this student using AssignmentService
+      await _assignmentService.submitHomework(
         assignmentId: assignmentId,
         studentId: user.uid,
         studentName: studentName,
-        teacherId: assignment['teacherId'] ?? '',
+        teacherId: assignment['teacherId'] as String,
         assignmentTitle: assignment['title'] ?? '',
       );
 

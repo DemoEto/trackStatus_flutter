@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:trackstatus_flutter/routes/app_route.dart';
+import '../../services/user_service.dart';
 
 class UsersManagementPage extends StatelessWidget {
   const UsersManagementPage({super.key});
+  
+  final UserService _userService = UserService();
 
   @override
   Widget build(BuildContext context) {
@@ -90,10 +93,20 @@ class UsersManagementPage extends StatelessWidget {
                               IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () async {
-                                  await FirebaseFirestore.instance
-                                      .collection('Users')
-                                      .doc(doc.id)
-                                      .delete();
+                                  try {
+                                    await _userService.deleteUser(doc.id);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('ลบผู้ใช้เรียบร้อย')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('เกิดข้อผิดพลาดในการลบ: $e')),
+                                      );
+                                    }
+                                  }
                                 },
                               ),
                             ],

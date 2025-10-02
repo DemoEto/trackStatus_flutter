@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
-import '../../utils/notification_helper.dart';
+import '../../services/notification_service.dart';
+import '../../services/assignment_service.dart';
+import '../../services/user_service.dart';
 
 class HomeworkAssignmentPage extends StatefulWidget {
   const HomeworkAssignmentPage({super.key});
@@ -17,8 +19,10 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _dueDateController = TextEditingController();
+  final AssignmentService _assignmentService = AssignmentService();
+  final UserService _userService = UserService();
+  final NotificationService _notificationService = NotificationService();
   final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
 
   DateTime? _selectedDueDate;
   String? _selectedSubject;
@@ -27,16 +31,7 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
   @override
   void initState() {
     super.initState();
-    _loadSubjects();
-  }
-
-  Future<void> _loadSubjects() async {
-    try {
-      await _firestore.collection('Subjects').get();
-      // Here you would populate subjects, but for now this is just initialization
-    } catch (e) {
-      debugPrint('Error loading subjects: $e');
-    }
+    // Initialization is handled by services now
   }
 
   Future<void> _selectDueDate() async {
@@ -56,11 +51,21 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
 
   Future<void> _selectStudents() async {
     try {
-      // Get all students from the database
-      QuerySnapshot studentSnapshot = await _firestore
-          .collection('Users')
-          .where('role', isEqualTo: 'student')
-          .get();
+      // Get all students from the database using UserService
+      QuerySnapshot? studentSnapshot;
+      await for (var snapshot in _userService.getUsersByRole('student')) {
+        studentSnapshot = snapshot;
+        break; // Get the first snapshot
+      }
+
+      if (studentSnapshot == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ไม่พบข้อมูลนักเรียน')),
+          );
+        }
+        return;
+      }
 
       List<Map<String, dynamic>> students = studentSnapshot.docs
           .map((doc) => {
@@ -115,40 +120,23 @@ class _HomeworkAssignmentPageState extends State<HomeworkAssignmentPage> {
     }
 
     try {
-      // Get current user
+      // Get current user and teacher name using UserService
       final user = _auth.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
       // Get teacher name
-      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-      String teacherName = userDoc.get('name') ?? 'ไม่ระบุชื่อ';
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String teacherName = userData?['name'] ?? 'ไม่ระบุชื่อ';
 
-      // Create assignment document
-      String assignmentId = _firestore.collection('Assignments').doc().id;
-      await _firestore.collection('Assignments').doc(assignmentId).set({
-        'id': assignmentId,
-        'title': _titleController.text,
-        'description': _descriptionController.text,
-        'dueDate': _selectedDueDate,
-        'assignedDate': Timestamp.now(),
-        'teacherId': user.uid,
-        'teacherName': teacherName,
-        'subjectId': _selectedSubject ?? 'general',
-        'assignedStudentIds': _assignedStudentIds,
-        'status': 'assigned',
-      });
-
-      // Call notification function
-      await NotificationHelper.handleHomeworkAssigned(
-        assignmentId: assignmentId,
-        teacherId: user.uid,
-        teacherName: teacherName,
-        subjectId: _selectedSubject ?? 'general',
-        subjectName: _selectedSubject ?? 'ทั่วไป',
-        assignmentTitle: _titleController.text,
-        assignmentDescription: _descriptionController.text,
+      // Use AssignmentService to create assignment and send notifications
+      await _assignmentService.createAssignment(
+        title: _titleController.text,
+        description: _descriptionController.text,
         dueDate: _selectedDueDate!,
         assignedStudentIds: _assignedStudentIds,
+        subjectId: _selectedSubject ?? 'general',
+        teacherId: user.uid,
+        teacherName: teacherName,
       );
 
       if (context.mounted) {

@@ -1,10 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../services/notification_service.dart';
+import '../services/user_service.dart';
 
 class AttendanceService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final NotificationService _notificationService = NotificationService();
+  final UserService _userService = UserService();
 
   // Get attendance records for a student
   Stream<QuerySnapshot> getAttendanceForStudent(String studentId, DateTime startOfMonth, DateTime endOfMonth) {
@@ -69,6 +73,225 @@ class AttendanceService {
     }
 
     await batch.commit();
+  }
+
+  // Add a new attendance record
+  Future<void> addAttendance({
+    required String studentId,
+    required String name,
+    required String subId,
+    required String type,
+    required String status,
+    String? teacherId,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Get current timestamp
+      Timestamp timestamp = Timestamp.now();
+
+      // Create attendance document
+      String attendanceId = "${studentId}_${subId}_${DateTime.now().millisecondsSinceEpoch}";
+      await _firestore.collection('Attendance').doc(attendanceId).set({
+        'studentId': studentId,
+        'name': name,
+        'subId': subId,
+        'type': type,
+        'status': status,
+        'timestamp': timestamp,
+        if (teacherId != null) 'teacherId': teacherId,
+      });
+
+      // Send notifications to student and their parents
+      await _sendAttendanceNotifications(
+        studentId: studentId,
+        subId: subId,
+        status: status,
+        timestamp: timestamp,
+        teacherId: teacherId ?? user.uid,
+      );
+    } catch (e) {
+      print('Error adding attendance: $e');
+      rethrow;
+    }
+  }
+
+  // Send attendance notifications to student and parents
+  Future<void> _sendAttendanceNotifications({
+    required String studentId,
+    required String subId,
+    required String status,
+    required Timestamp timestamp,
+    required String teacherId,
+  }) async {
+    try {
+      // Get student's device token to send push notification
+      DocumentSnapshot studentDoc = await _firestore
+          .collection('Users')
+          .doc(studentId)
+          .get();
+          
+      String? deviceToken = studentDoc.get('fcmToken') as String?;
+
+      // Create notification title and body based on status
+      String title, body;
+      
+      switch (status) {
+        case 'present':
+          title = 'การมาเรียน';
+          body = 'คุณมาเรียนวิชา $subId แล้ว';
+          break;
+        case 'leave':
+          title = 'การลาเรียน';
+          body = 'คุณได้รับอนุญาตให้ลากิจวิชา $subId';
+          break;
+        case 'absent':
+          title = 'การขาดเรียน';
+          body = 'คุณขาดเรียนวิชา $subId';
+          break;
+        default:
+          title = 'อัปเดตสถานะการมาเรียน';
+          body = 'มีการอัปเดตสถานะการมาเรียนวิชา $subId';
+      }
+
+      // Create a Firestore notification for the student
+      String notificationId = await _notificationService.createFirestoreNotification(
+        title: title,
+        body: body,
+        type: 'attendance_update',
+        senderId: teacherId,
+        senderName: 'ระบบ',
+        recipientId: studentId,
+        payload: {
+          'subject': subId,
+          'status': status,
+          'timestamp': timestamp.toDate().toString(),
+        },
+      );
+
+      // Send push notification to the student if device token is available
+      if (deviceToken != null) {
+        await _notificationService.sendPushNotification(
+          deviceToken: deviceToken,
+          title: title,
+          body: body,
+          data: {
+            'type': 'attendance_update',
+            'notificationId': notificationId,
+            'subject': subId,
+            'status': status,
+          },
+        );
+      }
+
+      // Find parents of this student and send notification
+      QuerySnapshot parentSnapshot = await _firestore
+          .collection('Users')
+          .where('role', isEqualTo: 'parent')
+          .get();
+
+      for (var parentDoc in parentSnapshot.docs) {
+        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
+        if (children != null && children.contains(studentId)) {
+          String parentTitle, parentBody;
+          
+          switch (status) {
+            case 'present':
+              parentTitle = 'แจ้งเตือนการมาเรียน';
+              parentBody = 'นักเรียน $studentId เข้าเรียนวิชา $subId แล้ว';
+              break;
+            case 'leave':
+              parentTitle = 'แจ้งเตือนการลา';
+              parentBody = 'นักเรียน $studentId ได้ทำการลาเรียนวิชา $subId';
+              break;
+            case 'absent':
+              parentTitle = 'แจ้งเตือนการขาดเรียน';
+              parentBody = 'นักเรียน $studentId ขาดเรียนวิชา $subId';
+              break;
+            default:
+              parentTitle = 'อัปเดตสถานะการมาเรียน';
+              parentBody = 'นักเรียน $studentId มีการอัปเดตสถานะการมาเรียนวิชา $subId';
+          }
+
+          // Get parent's device token to send push notification
+          String? parentDeviceToken = parentDoc.get('fcmToken') as String?;
+
+          // Create a Firestore notification for the parent
+          String parentNotificationId = await _notificationService.createFirestoreNotification(
+            title: parentTitle,
+            body: parentBody,
+            type: 'attendance_update',
+            senderId: teacherId,
+            senderName: 'ระบบ',
+            recipientId: parentDoc.id,
+            payload: {
+              'studentId': studentId,
+              'subject': subId,
+              'status': status,
+              'timestamp': timestamp.toDate().toString(),
+            },
+          );
+
+          // Send push notification to the parent if device token is available
+          if (parentDeviceToken != null) {
+            await _notificationService.sendPushNotification(
+              deviceToken: parentDeviceToken,
+              title: parentTitle,
+              body: parentBody,
+              data: {
+                'type': 'attendance_update',
+                'notificationId': parentNotificationId,
+                'studentId': studentId,
+                'subject': subId,
+                'status': status,
+              },
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error sending attendance notifications: $e');
+      rethrow;
+    }
+  }
+
+  // Update an existing attendance record
+  Future<void> updateAttendance({
+    required String attendanceId,
+    String? studentId,
+    String? name,
+    String? subId,
+    String? type,
+    String? status,
+  }) async {
+    try {
+      Map<String, dynamic> updateData = {};
+      
+      if (studentId != null) updateData['studentId'] = studentId;
+      if (name != null) updateData['name'] = name;
+      if (subId != null) updateData['subId'] = subId;
+      if (type != null) updateData['type'] = type;
+      if (status != null) updateData['status'] = status;
+      updateData['timestamp'] = FieldValue.serverTimestamp();
+
+      await _firestore.collection('Attendance').doc(attendanceId).set(updateData, SetOptions(merge: true));
+    } catch (e) {
+      print('Error updating attendance: $e');
+      rethrow;
+    }
+  }
+
+  // Delete an attendance record
+  Future<void> deleteAttendance(String attendanceId) async {
+    try {
+      await _firestore.collection('Attendance').doc(attendanceId).delete();
+    } catch (e) {
+      print('Error deleting attendance: $e');
+      rethrow;
+    }
   }
 
   // Determine attendance status based on time

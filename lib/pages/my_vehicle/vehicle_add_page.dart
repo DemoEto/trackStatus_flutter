@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/vehicle_service.dart';
 
 class VehicleAddPage extends StatefulWidget {
   final bool isPersonalVehicle;
@@ -18,6 +19,7 @@ class VehicleAddPage extends StatefulWidget {
 class _VehicleAddPageState extends State<VehicleAddPage> {
   final TextEditingController _licensePlateController = TextEditingController();
   File? _imageFile;
+  final VehicleService _vehicleService = VehicleService();
   bool _isLoading = false;
 
   Future<void> _pickImage() async {
@@ -41,6 +43,7 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
     setState(() => _isLoading = true);
 
     try {
+      // Upload image to Firebase Storage using the same approach
       String fileName = DateTime.now().millisecondsSinceEpoch.toString();
       Reference storageRef =
           FirebaseStorage.instance.ref().child("vehicles/$fileName.jpg");
@@ -48,17 +51,16 @@ class _VehicleAddPageState extends State<VehicleAddPage> {
       TaskSnapshot snapshot = await uploadTask.whenComplete(() => null);
       String downloadUrl = await snapshot.ref.getDownloadURL();
 
-      // Determine vehicle type based on parameter
+      // Determine vehicle type based on parameter and save using VehicleService
       bool isPersonal = widget.isPersonalVehicle;
       bool isSchool = widget.isSchoolVehicle;
       
-      await FirebaseFirestore.instance.collection("vehicles").add({
-        "licensePlate": _licensePlateController.text.trim(),
-        "imageUrl": downloadUrl,
-        "isPersonalVehicle": isPersonal,
-        "isSchoolVehicle": isSchool,
-        "createdAt": FieldValue.serverTimestamp(),
-      });
+      await _vehicleService.addVehicle(
+        licensePlate: _licensePlateController.text.trim(),
+        imageUrl: downloadUrl,
+        isPersonalVehicle: isPersonal,
+        isSchoolVehicle: isSchool,
+      );
 
       if (mounted) {
         String successMessage = isPersonal 

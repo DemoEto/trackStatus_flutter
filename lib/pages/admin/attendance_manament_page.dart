@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trackstatus_flutter/routes/app_route.dart';
+import '../../services/attendance_service.dart';
 
 class AttendanceManamentPage extends StatelessWidget {
   const AttendanceManamentPage({super.key});
+  
+  final AttendanceService _attendanceService = AttendanceService();
 
   @override
   Widget build(BuildContext context) {
@@ -53,10 +56,20 @@ class AttendanceManamentPage extends StatelessWidget {
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () async {
-                              await FirebaseFirestore.instance
-                                  .collection('Attendance')
-                                  .doc(doc.id)
-                                  .delete();
+                              try {
+                                await _attendanceService.deleteAttendance(doc.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('ลบข้อมูลการมาเรียนเรียบร้อย')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('เกิดข้อผิดพลาดในการลบ: $e')),
+                                  );
+                                }
+                              }
                             },
                           ),
                         ],
@@ -74,7 +87,7 @@ class AttendanceManamentPage extends StatelessWidget {
           // Action to perform when the FAB is pressed
           context.push(AppRoutes.addAttendance);
         },
-        child: Icon(Icons.add), // The icon displayed on the FAB
+        child: const Icon(Icons.add), // The icon displayed on the FAB
       ),
     );
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/user_service.dart';
 
 class EditUserPage extends StatefulWidget {
   final String uid;
@@ -24,6 +24,8 @@ class _EditUserPageState extends State<EditUserPage> {
   final _subIdCtrl = TextEditingController(); // teacher
 
   bool _loading = true;
+  
+  final UserService _userService = UserService();
 
   @override
   void initState() {
@@ -32,26 +34,29 @@ class _EditUserPageState extends State<EditUserPage> {
   }
 
   Future<void> _loadUser() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("Users")
-        .doc(widget.uid)
-        .get();
+    try {
+      Map<String, dynamic>? userData = await _userService.getUserById(widget.uid);
+      if (userData != null) {
+        _idCtrl.text = userData['id'] ?? "";
+        _nameCtrl.text = userData['name'] ?? "";
+        _role = userData['role'] ?? "";
 
-    if (doc.exists) {
-      final data = doc.data()!;
-      _idCtrl.text = data['id'] ?? "";
-      _nameCtrl.text = data['name'] ?? "";
-      _role = data['role'] ?? "";
+        // role-based
+        _classRoomCtrl.text = userData['classRoomId'] ?? "";
+        _busIdCtrl.text = userData['busId'] ?? "";
+        _childrenCtrl.text = (userData['children'] != null)
+            ? (userData['children'] as List<dynamic>).cast<String>().join(",")
+            : "";
 
-      // role-based
-      _classRoomCtrl.text = data['classRoomId'] ?? "";
-      _busIdCtrl.text = data['busId'] ?? "";
-      _childrenCtrl.text = (data['children'] != null)
-          ? (data['children'] as List<dynamic>).cast<String>().join(",")
-          : "";
-
-      _drvIdCtrl.text = data['drvId'] ?? "";
-      _subIdCtrl.text = data['subId'] ?? "";
+        _drvIdCtrl.text = userData['drvId'] ?? "";
+        _subIdCtrl.text = userData['subId'] ?? "";
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้: $e")),
+        );
+      }
     }
 
     setState(() => _loading = false);
@@ -60,34 +65,35 @@ class _EditUserPageState extends State<EditUserPage> {
   Future<void> _saveUser() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final updateData = {
-      "id": _idCtrl.text,
-      "name": _nameCtrl.text,
-      "role": _role,
-    };
-    _childrenCtrl.text == _childrenCtrl.text
-          .split(",")
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
-    if (_role == "student") {
-      updateData["classRoomId"] = _classRoomCtrl.text;
-      updateData["busId"] = _busIdCtrl.text;
-    } else if (_role == "parent") {
-      updateData["children"] = _childrenCtrl.text;
-    } else if (_role == "driver") {
-      updateData["drvId"] = _drvIdCtrl.text;
-    } else if (_role == "teacher") {
-      updateData["subId"] = _subIdCtrl.text;
+    try {
+      await _userService.updateUser(
+        userId: widget.uid,
+        role: _role,
+        id: _idCtrl.text,
+        name: _nameCtrl.text,
+        classRoomId: _classRoomCtrl.text,
+        busId: _busIdCtrl.text,
+        children: _childrenCtrl.text.isEmpty 
+            ? [] 
+            : _childrenCtrl.text.split(",").map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+        drvId: _drvIdCtrl.text,
+        subId: _subIdCtrl.text,
+        phone: _childrenCtrl.text, // Using childrenCtrl.text as phone for parent/driver roles
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("บันทึกข้อมูลผู้ใช้เรียบร้อย")),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("เกิดข้อผิดพลาด: $e")),
+        );
+      }
     }
-
-    // safer than update()
-    await FirebaseFirestore.instance
-        .collection("Users")
-        .doc(widget.uid)
-        .set(updateData, SetOptions(merge: true));
-
-    if (mounted) Navigator.pop(context);
   }
 
   @override

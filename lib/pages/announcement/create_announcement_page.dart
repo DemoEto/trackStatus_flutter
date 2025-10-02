@@ -29,12 +29,10 @@ class _CreateAnnouncementPageState extends State<CreateAnnouncementPage> {
   Future<void> _loadUserRole() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(user.uid)
-          .get();
+      // Get user role using UserService
+      String? userRole = await UserService().getUserRole(user.uid);
       setState(() {
-        _senderRole = userDoc.get('role');
+        _senderRole = userRole;
       });
     }
   }

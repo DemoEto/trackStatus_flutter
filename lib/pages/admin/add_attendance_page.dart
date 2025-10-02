@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../utils/notification_helper.dart';
+import '../../services/attendance_service.dart';
 
 class AddattendancePage extends StatefulWidget {
   const AddattendancePage({super.key});
@@ -18,6 +17,8 @@ class _AddattendancePageState extends State<AddattendancePage> {
   String _status = "present";
   String _type = "class_in";
   bool _isLoading = false;
+
+  final AttendanceService _attendanceService = AttendanceService();
 
   @override
   void dispose() {
@@ -40,44 +41,15 @@ class _AddattendancePageState extends State<AddattendancePage> {
         throw Exception('User not authenticated');
       }
 
-      // Get current timestamp
-      Timestamp timestamp = Timestamp.now();
-
-      // Create attendance document
-      String attendanceId = "${_studentIdController.text}_${_subjectController.text}_${DateTime.now().millisecondsSinceEpoch}";
-      await FirebaseFirestore.instance.collection('Attendance').doc(attendanceId).set({
-        'studentId': _studentIdController.text,
-        'name': _nameController.text,
-        'subId': _subjectController.text,
-        'type': _type,
-        'status': _status,
-        'timestamp': timestamp,
-      });
-
-      // Send notification to student
-      await NotificationHelper.sendAttendanceNotificationToStudent(
+      // Add attendance using AttendanceService
+      await _attendanceService.addAttendance(
         studentId: _studentIdController.text,
-        subject: _subjectController.text,
+        name: _nameController.text,
+        subId: _subjectController.text,
+        type: _type,
         status: _status,
+        teacherId: user.uid,
       );
-
-      // Find parents of this student and send notification
-      QuerySnapshot parentSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .where('role', isEqualTo: 'parent')
-          .get();
-
-      for (var parentDoc in parentSnapshot.docs) {
-        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-        if (children != null && children.contains(_studentIdController.text)) {
-          await NotificationHelper.sendAttendanceNotificationToParent(
-            studentId: _studentIdController.text,
-            parentUserId: parentDoc.id,
-            subject: _subjectController.text,
-            status: _status,
-          );
-        }
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

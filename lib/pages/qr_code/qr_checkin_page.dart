@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart'; // for debugPrint
 
 import '../../services/user_service.dart';
 import '../../services/attendance_service.dart';
-import '../../utils/notification_helper.dart';
+import '../../services/notification_service.dart';
 
 class QrCheckinPage extends StatefulWidget {
   final bool fromQrScan;
@@ -38,6 +38,7 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
   final userService = UserService();
+  final attendanceService = AttendanceService();
   final uid = FirebaseAuth.instance.currentUser?.uid;
   final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
@@ -99,9 +100,6 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
   }
 
   Future<void> onQrScanned(String scannedData) async {
-    // สมมุติว่า QR เก็บ stdId ไว้
-    final attendanceService = AttendanceService();
-    
     // Check if current user is authorized to perform attendance using UserService
     bool isAuthorized = await userService.isAuthorizedForAttendance();
     
@@ -606,15 +604,66 @@ class _QrCheckinPageState extends State<QrCheckinPage> {
           .where('role', isEqualTo: 'parent')
           .get();
           
+      final notificationService = NotificationService();
       for (var parentDoc in parentSnapshot.docs) {
         List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
         if (children != null && children.contains(studentId)) {
-          await NotificationHelper.sendAttendanceNotificationToParent(
-            studentId: studentId,
-            parentUserId: parentDoc.id,
-            subject: subject,
-            status: status,
+          String title, body;
+          
+          switch (status) {
+            case 'present':
+              title = 'แจ้งเตือนการมาเรียน';
+              body = 'นักเรียน $studentName เข้าเรียนวิชา $subject แล้ว';
+              break;
+            case 'leave':
+              title = 'แจ้งเตือนการลา';
+              body = 'นักเรียน $studentName ได้ทำการลาเรียนวิชา $subject';
+              break;
+            case 'absent':
+              title = 'แจ้งเตือนการขาดเรียน';
+              body = 'นักเรียน $studentName ขาดเรียนวิชา $subject';
+              break;
+            default:
+              title = 'อัปเดตสถานะการมาเรียน';
+              body = 'นักเรียน $studentName มีการอัปเดตสถานะการมาเรียนวิชา $subject';
+          }
+
+          // Get parent's device token to send push notification
+          String? deviceToken = parentDoc.get('fcmToken') as String?;
+
+          // Create a Firestore notification for the parent
+          String notificationId = await notificationService.createFirestoreNotification(
+            title: title,
+            body: body,
+            type: 'attendance_update',
+            senderId: FirebaseAuth.instance.currentUser?.uid ?? 'system',
+            senderName: 'ระบบ',
+            recipientId: parentDoc.id,
+            payload: {
+              'studentId': studentId,
+              'studentName': studentName,
+              'subject': subject,
+              'status': status,
+              'timestamp': Timestamp.now().toDate().toString(),
+            },
           );
+
+          // Send push notification to the parent if device token is available
+          if (deviceToken != null) {
+            await notificationService.sendPushNotification(
+              deviceToken: deviceToken,
+              title: title,
+              body: body,
+              data: {
+                'type': 'attendance_update',
+                'notificationId': notificationId,
+                'studentId': studentId,
+                'studentName': studentName,
+                'subject': subject,
+                'status': status,
+              },
+            );
+          }
         }
       }
     } catch (e) {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../utils/notification_helper.dart';
+import '../../services/notification_service.dart';
+import '../../services/user_service.dart';
+import '../../models/notification_model.dart' as app_models;
 
 class NotificationManagementPage extends StatefulWidget {
   const NotificationManagementPage({super.key});
@@ -13,6 +15,7 @@ class NotificationManagementPage extends StatefulWidget {
 class _NotificationManagementPageState extends State<NotificationManagementPage> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
+  final UserService _userService = UserService();
   String _selectedRole = 'all'; // Default to sending to all users
   final List<String> _roles = ['all', 'student', 'teacher', 'parent', 'admin', 'driver'];
 
@@ -43,77 +46,58 @@ class _NotificationManagementPageState extends State<NotificationManagementPage>
         throw Exception('User not authenticated');
       }
 
-      // Get sender name
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(user.uid).get();
-      String senderName = userDoc.get('name') ?? 'ไม่ทราบชื่อ';
+      // Get sender name using UserService
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String senderName = userData?['name'] ?? 'ไม่ทราบชื่อ';
 
-      if (_selectedRole == 'all') {
-        // Send to all users
-        await NotificationHelper.createNotificationForRole(
-          role: 'student',
-          title: _titleController.text,
-          body: _bodyController.text,
-          type: 'admin_notification',
-          senderId: user.uid,
-          senderName: senderName,
-          payload: {
-            'adminId': user.uid,
-            'timestamp': Timestamp.now().toDate().toString(),
-          },
-        );
-        
-        await NotificationHelper.createNotificationForRole(
-          role: 'parent',
-          title: _titleController.text,
-          body: _bodyController.text,
-          type: 'admin_notification',
-          senderId: user.uid,
-          senderName: senderName,
-          payload: {
-            'adminId': user.uid,
-            'timestamp': Timestamp.now().toDate().toString(),
-          },
-        );
-        
-        await NotificationHelper.createNotificationForRole(
-          role: 'teacher',
-          title: _titleController.text,
-          body: _bodyController.text,
-          type: 'admin_notification',
-          senderId: user.uid,
-          senderName: senderName,
-          payload: {
-            'adminId': user.uid,
-            'timestamp': Timestamp.now().toDate().toString(),
-          },
-        );
-        
-        await NotificationHelper.createNotificationForRole(
-          role: 'driver',
-          title: _titleController.text,
-          body: _bodyController.text,
-          type: 'admin_notification',
-          senderId: user.uid,
-          senderName: senderName,
-          payload: {
-            'adminId': user.uid,
-            'timestamp': Timestamp.now().toDate().toString(),
-          },
-        );
-      } else {
-        // Send to specific role
-        await NotificationHelper.createNotificationForRole(
-          role: _selectedRole,
-          title: _titleController.text,
-          body: _bodyController.text,
-          type: 'admin_notification',
-          senderId: user.uid,
-          senderName: senderName,
-          payload: {
-            'adminId': user.uid,
-            'timestamp': Timestamp.now().toDate().toString(),
-          },
-        );
+      final notificationService = NotificationService();
+      
+      List<String> rolesToSend = _selectedRole == 'all' 
+          ? ['student', 'parent', 'teacher', 'driver'] 
+          : [_selectedRole];
+
+      for (String role : rolesToSend) {
+        // Get users by role using UserService
+        QuerySnapshot? usersSnapshot;
+        await for (var snapshot in _userService.getUsersByRole(role)) {
+          usersSnapshot = snapshot;
+          break; // Get the first snapshot
+        }
+
+        if (usersSnapshot != null) {
+          for (var userDoc in usersSnapshot.docs) {
+            // Get the user's device token to send push notification
+            String? deviceToken = userDoc.get('fcmToken') as String?;
+
+            // Create a Firestore notification for each user in this role
+            String notificationId = await notificationService.createFirestoreNotification(
+              title: _titleController.text,
+              body: _bodyController.text,
+              type: 'admin_notification',
+              senderId: user.uid,
+              senderName: senderName,
+              recipientId: userDoc.id,
+              payload: {
+                'adminId': user.uid,
+                'timestamp': Timestamp.now().toDate().toString(),
+              },
+            );
+
+            // Send push notification to the user if device token is available
+            if (deviceToken != null) {
+              await notificationService.sendPushNotification(
+                deviceToken: deviceToken,
+                title: _titleController.text,
+                body: _bodyController.text,
+                data: {
+                  'type': 'admin_notification',
+                  'notificationId': notificationId,
+                  'adminId': user.uid,
+                },
+              );
+            }
+          }
+        }
       }
 
       if (mounted) {
@@ -248,7 +232,7 @@ class _NotificationManagementPageState extends State<NotificationManagementPage>
   Widget _buildNotificationHistory() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('Notifications')
+          .collection('notifications') // Changed from 'Notifications' to match how it's done in NotificationService
           .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {

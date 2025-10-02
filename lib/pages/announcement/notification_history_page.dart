@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../models/notification_model.dart' as notification_model;
-import '../../services/firestore_notification_service.dart';
+import '../../services/notification_service.dart';
 
 class NotificationHistoryPage extends StatefulWidget {
   const NotificationHistoryPage({super.key});
@@ -12,7 +12,7 @@ class NotificationHistoryPage extends StatefulWidget {
 }
 
 class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
-  final FirestoreNotificationService _notificationService = FirestoreNotificationService();
+  final NotificationService _notificationService = NotificationService();
 
   @override
   Widget build(BuildContext context) {

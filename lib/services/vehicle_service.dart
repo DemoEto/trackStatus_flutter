@@ -38,4 +38,41 @@ class VehicleService {
       return null;
     }
   }
+
+  // Add a new vehicle
+  Future<void> addVehicle({
+    required String licensePlate,
+    required String imageUrl,
+    bool isPersonalVehicle = false,
+    bool isSchoolVehicle = false,
+  }) async {
+    try {
+      await _firestore.collection("vehicles").add({
+        "licensePlate": licensePlate,
+        "imageUrl": imageUrl,
+        "isPersonalVehicle": isPersonalVehicle,
+        "isSchoolVehicle": isSchoolVehicle,
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Error adding vehicle: $e');
+    }
+  }
+
+  // Update an existing vehicle
+  Future<void> updateVehicle({
+    required String vehicleId,
+    required String licensePlate,
+    required String imageUrl,
+  }) async {
+    try {
+      await _firestore.collection("vehicles").doc(vehicleId).update({
+        "licensePlate": licensePlate,
+        "imageUrl": imageUrl,
+        "updatedAt": FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Error updating vehicle: $e');
+    }
+  }
 }

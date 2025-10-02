@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/user_service.dart';
 
 class AddUserPage extends StatefulWidget {
   const AddUserPage({super.key});
@@ -28,51 +28,49 @@ class _AddUserPageState extends State<AddUserPage> {
   final TextEditingController _childrenController = TextEditingController();
   final TextEditingController _subIdController = TextEditingController();
 
+  final UserService _userService = UserService();
+
   Future<void> _addUser() async {
     if (_formKey.currentState!.validate() && _selectedUserType != null) {
       try {
-        await FirebaseFirestore.instance.collection('Users').add({
-          'role': _selectedUserType,
-          'id': _idController.text,
-          'name': _nameController.text,
-          'createdAt': FieldValue.serverTimestamp(),
-          // เงื่อนไขตาม role
-          if (_selectedUserType == 'student') ...{
-            'busId': _busIdController.text,
-            'classRoomId': _classRoomIdController.text,
-          },
-          if (_selectedUserType == 'parent') ...{
-            'phone': _phoneController.text,
-            'children': _childrenController.text
-                .split(',')
-                .map((e) => e.trim())
-                .where((e) => e.isNotEmpty)
-                .toList(), // 🔥 กลายเป็น array
-          },
-          if (_selectedUserType == 'teacher') ...{
-            'subId': _subIdController.text,
-          },
-          if (_selectedUserType == 'driver') ...{
-            'busId': _busIdController.text,
-            'phone': _phoneController.text,
-          },
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User added successfully!')),
+        await _userService.addUser(
+          role: _selectedUserType!,
+          id: _idController.text,
+          name: _nameController.text,
+          busId: _busIdController.text,
+          classRoomId: _classRoomIdController.text,
+          phone: _phoneController.text,
+          children: _childrenController.text
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList(),
+          subId: _subIdController.text,
+          drvId: _busIdController.text, // Using busId as drvId since that's what the form uses
         );
-        _formKey.currentState!.reset();
-        setState(() {
-          _selectedUserType = null;
-        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User added successfully!')),
+          );
+          _formKey.currentState!.reset();
+          setState(() {
+            _selectedUserType = null;
+          });
+        }
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to add user: $e')));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to add user: $e')),
+          );
+        }
       }
     } else if (_selectedUserType == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select user type')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select user type')),
+        );
+      }
     }
   }
 
@@ -91,8 +89,7 @@ class _AddUserPageState extends State<AddUserPage> {
                 decoration: const InputDecoration(labelText: 'User Type'),
                 items: _userTypes
                     .map(
-                      (type) =>
-                          DropdownMenuItem(value: type, child: Text(type)),
+                      (type) => DropdownMenuItem(value: type, child: Text(type)),
                     )
                     .toList(),
                 onChanged: (value) {

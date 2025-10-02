@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart'; // for debugPrint
 
 import '../../routes/app_route.dart';
 import '../../services/attendance_service.dart';
-import '../../utils/notification_helper.dart';
+import '../../services/notification_service.dart';
 
 class QrScannerPage extends StatefulWidget {
   const QrScannerPage({super.key});
@@ -19,6 +19,9 @@ class QrScannerPage extends StatefulWidget {
 class _QrScannerPageState extends State<QrScannerPage> {
   final MobileScannerController _controller = MobileScannerController();
   bool _scanned = false; // กันซ้ำ
+  
+  final AttendanceService _attendanceService = AttendanceService();
+  final NotificationService _notificationService = NotificationService();
 
   // Handle class check-in notification
   Future<void> _handleClassCheckin(String? currentUserId, String subjectId) async {
@@ -34,12 +37,86 @@ class _QrScannerPageState extends State<QrScannerPage> {
         DocumentSnapshot subjectDoc = await FirebaseFirestore.instance.collection('Subjects').doc(subjectId).get();
         String subjectName = subjectDoc.exists ? subjectDoc.get('name') ?? subjectId : subjectId;
         
-        NotificationHelper.handleStudentClassCheckin(
-          studentId: currentUserId,
-          studentName: studentName,
-          subjectId: subjectId,
-          subjectName: subjectName,
+        // Use NotificationService to send notifications to the student and their parents
+        // Send notification to student
+        String? deviceToken = userDoc.get('fcmToken') as String?;
+
+        // Create a Firestore notification for the student
+        String notificationId = await _notificationService.createFirestoreNotification(
+          title: 'เข้าเรียนวิชา $subjectName',
+          body: 'คุณได้เข้าเรียนวิชา $subjectName เรียบร้อยแล้ว',
+          type: 'class_checkin',
+          senderId: 'system',
+          senderName: 'ระบบ',
+          recipientId: currentUserId,
+          payload: {
+            'studentId': currentUserId,
+            'studentName': studentName,
+            'subjectId': subjectId,
+            'subjectName': subjectName,
+            'timestamp': Timestamp.now().toDate().toString(),
+          },
         );
+
+        // Send push notification to the student if device token is available
+        if (deviceToken != null) {
+          await _notificationService.sendPushNotification(
+            deviceToken: deviceToken,
+            title: 'เข้าเรียนวิชา $subjectName',
+            body: 'คุณได้เข้าเรียนวิชา $subjectName เรียบร้อยแล้ว',
+            data: {
+              'type': 'class_checkin',
+              'notificationId': notificationId,
+              'subjectId': subjectId,
+              'subjectName': subjectName,
+            },
+          );
+        }
+
+        // Send notification to parents of this student
+        QuerySnapshot parentSnapshot = await FirebaseFirestore.instance
+            .collection('Users')
+            .where('role', isEqualTo: 'parent')
+            .get();
+            
+        for (var parentDoc in parentSnapshot.docs) {
+          List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
+          if (children != null && children.contains(currentUserId)) {
+            String? parentDeviceToken = parentDoc.get('fcmToken') as String?;
+
+            // Create a Firestore notification for the parent
+            String parentNotificationId = await _notificationService.createFirestoreNotification(
+              title: 'นักเรียนเข้าเรียนวิชา $subjectName',
+              body: 'ลูกของคุณ $studentName ได้เข้าเรียนวิชา $subjectName เรียบร้อยแล้ว',
+              type: 'class_checkin',
+              senderId: 'system',
+              senderName: 'ระบบ',
+              recipientId: parentDoc.id,
+              payload: {
+                'studentId': currentUserId,
+                'studentName': studentName,
+                'subjectId': subjectId,
+                'subjectName': subjectName,
+                'timestamp': Timestamp.now().toDate().toString(),
+              },
+            );
+
+            // Send push notification to the parent if device token is available
+            if (parentDeviceToken != null) {
+              await _notificationService.sendPushNotification(
+                deviceToken: parentDeviceToken,
+                title: 'นักเรียนเข้าเรียนวิชา $subjectName',
+                body: 'ลูกของคุณ $studentName ได้เข้าเรียนวิชา $subjectName เรียบร้อยแล้ว',
+                data: {
+                  'type': 'class_checkin',
+                  'notificationId': parentNotificationId,
+                  'studentId': currentUserId,
+                  'subjectName': subjectName,
+                },
+              );
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error handling class checkin: $e');
@@ -53,10 +130,80 @@ class _QrScannerPageState extends State<QrScannerPage> {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(studentId).get();
       String studentName = userDoc.exists ? userDoc.get('name') ?? studentId : studentId;
       
-      NotificationHelper.handleStudentSchoolArrival(
-        studentId: studentId,
-        studentName: studentName,
+      // Use NotificationService to send notifications to the student and their parents
+      // Send notification to student
+      String? deviceToken = userDoc.get('fcmToken') as String?;
+
+      // Create a Firestore notification for the student
+      String notificationId = await _notificationService.createFirestoreNotification(
+        title: 'ถึงโรงเรียนแล้ว',
+        body: 'คุณมาถึงโรงเรียนแล้ว',
+        type: 'school_arrival',
+        senderId: 'system',
+        senderName: 'ระบบ',
+        recipientId: studentId,
+        payload: {
+          'studentId': studentId,
+          'studentName': studentName,
+          'timestamp': Timestamp.now().toDate().toString(),
+        },
       );
+
+      // Send push notification to the student if device token is available
+      if (deviceToken != null) {
+        await _notificationService.sendPushNotification(
+          deviceToken: deviceToken,
+          title: 'ถึงโรงเรียนแล้ว',
+          body: 'คุณมาถึงโรงเรียนแล้ว',
+          data: {
+            'type': 'school_arrival',
+            'notificationId': notificationId,
+            'studentId': studentId,
+          },
+        );
+      }
+
+      // Send notification to parents of this student
+      QuerySnapshot parentSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .where('role', isEqualTo: 'parent')
+          .get();
+          
+      for (var parentDoc in parentSnapshot.docs) {
+        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
+        if (children != null && children.contains(studentId)) {
+          String? parentDeviceToken = parentDoc.get('fcmToken') as String?;
+
+          // Create a Firestore notification for the parent
+          String parentNotificationId = await _notificationService.createFirestoreNotification(
+            title: 'นักเรียนมาถึงโรงเรียน',
+            body: 'ลูกของคุณ $studentName ได้มาถึงโรงเรียนแล้ว',
+            type: 'school_arrival',
+            senderId: 'system',
+            senderName: 'ระบบ',
+            recipientId: parentDoc.id,
+            payload: {
+              'studentId': studentId,
+              'studentName': studentName,
+              'timestamp': Timestamp.now().toDate().toString(),
+            },
+          );
+
+          // Send push notification to the parent if device token is available
+          if (parentDeviceToken != null) {
+            await _notificationService.sendPushNotification(
+              deviceToken: parentDeviceToken,
+              title: 'นักเรียนมาถึงโรงเรียน',
+              body: 'ลูกของคุณ $studentName ได้มาถึงโรงเรียนแล้ว',
+              data: {
+                'type': 'school_arrival',
+                'notificationId': parentNotificationId,
+                'studentId': studentId,
+              },
+            );
+          }
+        }
+      }
     } catch (e) {
       debugPrint('Error handling school arrival: $e');
     }
@@ -69,10 +216,80 @@ class _QrScannerPageState extends State<QrScannerPage> {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(studentId).get();
       String studentName = userDoc.exists ? userDoc.get('name') ?? studentId : studentId;
       
-      NotificationHelper.handleStudentSchoolDeparture(
-        studentId: studentId,
-        studentName: studentName,
+      // Use NotificationService to send notifications to the student and their parents
+      // Send notification to student
+      String? deviceToken = userDoc.get('fcmToken') as String?;
+
+      // Create a Firestore notification for the student
+      String notificationId = await _notificationService.createFirestoreNotification(
+        title: 'ออกจากโรงเรียนแล้ว',
+        body: 'คุณออกจากโรงเรียนแล้ว',
+        type: 'school_departure',
+        senderId: 'system',
+        senderName: 'ระบบ',
+        recipientId: studentId,
+        payload: {
+          'studentId': studentId,
+          'studentName': studentName,
+          'timestamp': Timestamp.now().toDate().toString(),
+        },
       );
+
+      // Send push notification to the student if device token is available
+      if (deviceToken != null) {
+        await _notificationService.sendPushNotification(
+          deviceToken: deviceToken,
+          title: 'ออกจากโรงเรียนแล้ว',
+          body: 'คุณออกจากโรงเรียนแล้ว',
+          data: {
+            'type': 'school_departure',
+            'notificationId': notificationId,
+            'studentId': studentId,
+          },
+        );
+      }
+
+      // Send notification to parents of this student
+      QuerySnapshot parentSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .where('role', isEqualTo: 'parent')
+          .get();
+          
+      for (var parentDoc in parentSnapshot.docs) {
+        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
+        if (children != null && children.contains(studentId)) {
+          String? parentDeviceToken = parentDoc.get('fcmToken') as String?;
+
+          // Create a Firestore notification for the parent
+          String parentNotificationId = await _notificationService.createFirestoreNotification(
+            title: 'นักเรียนออกจากโรงเรียน',
+            body: 'ลูกของคุณ $studentName ได้ออกจากโรงเรียนแล้ว',
+            type: 'school_departure',
+            senderId: 'system',
+            senderName: 'ระบบ',
+            recipientId: parentDoc.id,
+            payload: {
+              'studentId': studentId,
+              'studentName': studentName,
+              'timestamp': Timestamp.now().toDate().toString(),
+            },
+          );
+
+          // Send push notification to the parent if device token is available
+          if (parentDeviceToken != null) {
+            await _notificationService.sendPushNotification(
+              deviceToken: parentDeviceToken,
+              title: 'นักเรียนออกจากโรงเรียน',
+              body: 'ลูกของคุณ $studentName ได้ออกจากโรงเรียนแล้ว',
+              data: {
+                'type': 'school_departure',
+                'notificationId': parentNotificationId,
+                'studentId': studentId,
+              },
+            );
+          }
+        }
+      }
     } catch (e) {
       debugPrint('Error handling school departure: $e');
     }
@@ -144,11 +361,10 @@ class _QrScannerPageState extends State<QrScannerPage> {
                       }
                       
                       // Save pending attendance with scan time
-                      final attendanceService = AttendanceService();
                       String? studentId = FirebaseAuth.instance.currentUser?.uid;
                       if (studentId != null) {
                         try {
-                          await attendanceService.savePendingAttendance(
+                          await _attendanceService.savePendingAttendance(
                             stdId: studentId,
                             subId: subjectId,
                             teacherId: teacherId,
