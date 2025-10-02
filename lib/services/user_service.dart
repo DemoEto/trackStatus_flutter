@@ -223,4 +223,13 @@ class UserService {
   void startAttendanceNotificationService() {
     // This is a placeholder for now - implementation depends on the specific service
   }
+  
+  // Get parents of a specific child
+  Stream<QuerySnapshot> getParentsByChildId(String childId) {
+    return _firestore
+        .collection('Users')
+        .where('role', isEqualTo: 'parent')
+        .where('children', arrayContains: childId)
+        .snapshots();
+  }
 }

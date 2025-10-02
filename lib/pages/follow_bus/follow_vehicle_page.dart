@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 import '../../services/notification_service.dart';
+import '../../services/user_service.dart';
 
 class FollowVehiclePage extends StatefulWidget {
   const FollowVehiclePage({super.key});
@@ -51,15 +52,15 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       // Use NotificationService to send notifications to parents of these students
       final notificationService = NotificationService();
       for (String studentId in studentIds) {
-        // Find parents of this student
-        QuerySnapshot parentSnapshot = await _firestore
-            .collection('Users')
-            .where('role', isEqualTo: 'parent')
-            .get();
-            
-        for (var parentDoc in parentSnapshot.docs) {
-          List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-          if (children != null && children.contains(studentId)) {
+        // Find parents of this student using UserService
+        QuerySnapshot? parentSnapshot;
+        await for (var snapshot in _userService.getParentsByChildId(studentId)) {
+          parentSnapshot = snapshot;
+          break; // Get the first snapshot
+        }
+        
+        if (parentSnapshot != null) {
+          for (var parentDoc in parentSnapshot.docs) {
             String? deviceToken = parentDoc.get('fcmToken') as String?;
 
             // Create a Firestore notification for the parent
@@ -136,15 +137,15 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       // Use NotificationService to send notifications to parents of these students
       final notificationService = NotificationService();
       for (String studentId in studentIds) {
-        // Find parents of this student
-        QuerySnapshot parentSnapshot = await _firestore
-            .collection('Users')
-            .where('role', isEqualTo: 'parent')
-            .get();
-            
-        for (var parentDoc in parentSnapshot.docs) {
-          List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-          if (children != null && children.contains(studentId)) {
+        // Find parents of this student using UserService
+        QuerySnapshot? parentSnapshot;
+        await for (var snapshot in _userService.getParentsByChildId(studentId)) {
+          parentSnapshot = snapshot;
+          break; // Get the first snapshot
+        }
+        
+        if (parentSnapshot != null) {
+          for (var parentDoc in parentSnapshot.docs) {
             String? deviceToken = parentDoc.get('fcmToken') as String?;
 
             // Create a Firestore notification for the parent
@@ -221,15 +222,15 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
       // Use NotificationService to send notifications to parents of these students
       final notificationService = NotificationService();
       for (String studentId in studentIds) {
-        // Find parents of this student
-        QuerySnapshot parentSnapshot = await _firestore
-            .collection('Users')
-            .where('role', isEqualTo: 'parent')
-            .get();
-            
-        for (var parentDoc in parentSnapshot.docs) {
-          List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-          if (children != null && children.contains(studentId)) {
+        // Find parents of this student using UserService
+        QuerySnapshot? parentSnapshot;
+        await for (var snapshot in _userService.getParentsByChildId(studentId)) {
+          parentSnapshot = snapshot;
+          break; // Get the first snapshot
+        }
+        
+        if (parentSnapshot != null) {
+          for (var parentDoc in parentSnapshot.docs) {
             String? deviceToken = parentDoc.get('fcmToken') as String?;
 
             // Create a Firestore notification for the parent
@@ -300,14 +301,14 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
       // Use NotificationService to send notification to parent of this student
       final notificationService = NotificationService();
-      QuerySnapshot parentSnapshot = await _firestore
-          .collection('Users')
-          .where('role', isEqualTo: 'parent')
-          .get();
-          
-      for (var parentDoc in parentSnapshot.docs) {
-        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-        if (children != null && children.contains(studentId)) {
+      QuerySnapshot? parentSnapshot;
+      await for (var snapshot in _userService.getParentsByChildId(studentId)) {
+        parentSnapshot = snapshot;
+        break; // Get the first snapshot
+      }
+      
+      if (parentSnapshot != null) {
+        for (var parentDoc in parentSnapshot.docs) {
           String? deviceToken = parentDoc.get('fcmToken') as String?;
 
           // Create a Firestore notification for the parent
@@ -379,14 +380,14 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
       // Use NotificationService to send notification to parent of this student
       final notificationService = NotificationService();
-      QuerySnapshot parentSnapshot = await _firestore
-          .collection('Users')
-          .where('role', isEqualTo: 'parent')
-          .get();
-          
-      for (var parentDoc in parentSnapshot.docs) {
-        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-        if (children != null && children.contains(studentId)) {
+      QuerySnapshot? parentSnapshot;
+      await for (var snapshot in _userService.getParentsByChildId(studentId)) {
+        parentSnapshot = snapshot;
+        break; // Get the first snapshot
+      }
+      
+      if (parentSnapshot != null) {
+        for (var parentDoc in parentSnapshot.docs) {
           String? deviceToken = parentDoc.get('fcmToken') as String?;
 
           // Create a Firestore notification for the parent
@@ -443,8 +444,8 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
     if (user == null) return [];
 
     try {
-      DocumentSnapshot userDoc = await _firestore.collection('Users').doc(user.uid).get();
-      String? busId = userDoc.get('busId') as String?;
+      Map<String, dynamic>? userData = await _userService.getUserById(user.uid);
+      String? busId = userData?['busId'] as String?;
       if (busId == null) return [];
 
       QuerySnapshot studentSnapshot = await _userService.getStudentsOnBus(busId).first;
@@ -464,8 +465,8 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: _firestore.collection('Users').doc(_auth.currentUser?.uid).get(),
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _userService.getUserById(_auth.currentUser?.uid ?? ''),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting || !snapshot.hasData) {
           return const Scaffold(
@@ -473,7 +474,7 @@ class _FollowVehiclePageState extends State<FollowVehiclePage> {
           );
         }
         
-        String? userRole = snapshot.data!.get('role') as String?;
+        String? userRole = snapshot.data!['role'] as String?;
         
         // Driver view
         if (userRole == 'driver') {

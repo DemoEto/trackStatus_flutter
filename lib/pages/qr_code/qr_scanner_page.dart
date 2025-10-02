@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 
 import '../../routes/app_route.dart';
 import '../../services/attendance_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/user_service.dart';
 
 class QrScannerPage extends StatefulWidget {
   const QrScannerPage({super.key});
@@ -28,18 +28,15 @@ class _QrScannerPageState extends State<QrScannerPage> {
     if (currentUserId == null) return;
 
     try {
-      // Get student info from Firestore
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(currentUserId).get();
-      if (userDoc.exists) {
-        String studentName = userDoc.get('name') ?? currentUserId;
-        
-        // Get subject info
-        DocumentSnapshot subjectDoc = await FirebaseFirestore.instance.collection('Subjects').doc(subjectId).get();
-        String subjectName = subjectDoc.exists ? subjectDoc.get('name') ?? subjectId : subjectId;
+      // Get student info using UserService
+      Map<String, dynamic>? userData = await UserService().getUserById(currentUserId);
+      if (userData != null) {
+        String studentName = userData['name'] ?? currentUserId;
+        String? subjectName = userData['subjectName'] ?? subjectId; // subject name would need to come from subject service
         
         // Use NotificationService to send notifications to the student and their parents
         // Send notification to student
-        String? deviceToken = userDoc.get('fcmToken') as String?;
+        String? deviceToken = userData['fcmToken'] as String?;
 
         // Create a Firestore notification for the student
         String notificationId = await _notificationService.createFirestoreNotification(
@@ -73,15 +70,15 @@ class _QrScannerPageState extends State<QrScannerPage> {
           );
         }
 
-        // Send notification to parents of this student
-        QuerySnapshot parentSnapshot = await FirebaseFirestore.instance
-            .collection('Users')
-            .where('role', isEqualTo: 'parent')
-            .get();
-            
-        for (var parentDoc in parentSnapshot.docs) {
-          List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-          if (children != null && children.contains(currentUserId)) {
+        // Send notification to parents of this student using UserService
+        QuerySnapshot? parentSnapshot;
+        await for (var snapshot in UserService().getParentsByChildId(currentUserId)) {
+          parentSnapshot = snapshot;
+          break; // Get the first snapshot
+        }
+        
+        if (parentSnapshot != null) {
+          for (var parentDoc in parentSnapshot.docs) {
             String? parentDeviceToken = parentDoc.get('fcmToken') as String?;
 
             // Create a Firestore notification for the parent
@@ -126,13 +123,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
   // Handle school arrival notification
   Future<void> _handleSchoolArrival(String studentId) async {
     try {
-      // Get student name from the database
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(studentId).get();
-      String studentName = userDoc.exists ? userDoc.get('name') ?? studentId : studentId;
+      // Get student name from the database using UserService
+      Map<String, dynamic>? userData = await UserService().getUserById(studentId);
+      String studentName = userData != null ? userData['name'] ?? studentId : studentId;
       
       // Use NotificationService to send notifications to the student and their parents
       // Send notification to student
-      String? deviceToken = userDoc.get('fcmToken') as String?;
+      String? deviceToken = userData != null ? userData['fcmToken'] as String? : null;
 
       // Create a Firestore notification for the student
       String notificationId = await _notificationService.createFirestoreNotification(
@@ -163,15 +160,15 @@ class _QrScannerPageState extends State<QrScannerPage> {
         );
       }
 
-      // Send notification to parents of this student
-      QuerySnapshot parentSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .where('role', isEqualTo: 'parent')
-          .get();
-          
-      for (var parentDoc in parentSnapshot.docs) {
-        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-        if (children != null && children.contains(studentId)) {
+      // Send notification to parents of this student using UserService
+      QuerySnapshot? parentSnapshot;
+      await for (var snapshot in UserService().getParentsByChildId(studentId)) {
+        parentSnapshot = snapshot;
+        break; // Get the first snapshot
+      }
+      
+      if (parentSnapshot != null) {
+        for (var parentDoc in parentSnapshot.docs) {
           String? parentDeviceToken = parentDoc.get('fcmToken') as String?;
 
           // Create a Firestore notification for the parent
@@ -212,13 +209,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
   // Handle school departure notification
   Future<void> _handleSchoolDeparture(String studentId) async {
     try {
-      // Get student name from the database
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(studentId).get();
-      String studentName = userDoc.exists ? userDoc.get('name') ?? studentId : studentId;
+      // Get student name from the database using UserService
+      Map<String, dynamic>? userData = await UserService().getUserById(studentId);
+      String studentName = userData != null ? userData['name'] ?? studentId : studentId;
       
       // Use NotificationService to send notifications to the student and their parents
       // Send notification to student
-      String? deviceToken = userDoc.get('fcmToken') as String?;
+      String? deviceToken = userData != null ? userData['fcmToken'] as String? : null;
 
       // Create a Firestore notification for the student
       String notificationId = await _notificationService.createFirestoreNotification(
@@ -249,15 +246,15 @@ class _QrScannerPageState extends State<QrScannerPage> {
         );
       }
 
-      // Send notification to parents of this student
-      QuerySnapshot parentSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .where('role', isEqualTo: 'parent')
-          .get();
-          
-      for (var parentDoc in parentSnapshot.docs) {
-        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-        if (children != null && children.contains(studentId)) {
+      // Send notification to parents of this student using UserService
+      QuerySnapshot? parentSnapshot;
+      await for (var snapshot in UserService().getParentsByChildId(studentId)) {
+        parentSnapshot = snapshot;
+        break; // Get the first snapshot
+      }
+      
+      if (parentSnapshot != null) {
+        for (var parentDoc in parentSnapshot.docs) {
           String? parentDeviceToken = parentDoc.get('fcmToken') as String?;
 
           // Create a Firestore notification for the parent

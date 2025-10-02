@@ -80,14 +80,16 @@ class AttendanceService {
     await batch.commit();
   }
 
-  // Add a new attendance record
+  // Add a new attendance record (handles both uses from different pages)
   Future<void> addAttendance({
     required String studentId,
     required String name,
-    required String subId,
-    required String type,
+    String? subId,
+    String? subjectId,
+    String? type,
     required String status,
     String? teacherId,
+    DateTime? timestamp,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -95,27 +97,35 @@ class AttendanceService {
         throw Exception('User not authenticated');
       }
 
-      // Get current timestamp
-      Timestamp timestamp = Timestamp.now();
+      // Use provided timestamp or get current timestamp
+      Timestamp firestoreTimestamp = timestamp != null 
+          ? Timestamp.fromDate(timestamp) 
+          : Timestamp.now();
 
+      // Use either subId or subjectId (for different calling pages)
+      String usedSubId = subId ?? subjectId ?? "";
+      
       // Create attendance document
-      String attendanceId = "${studentId}_${subId}_${DateTime.now().millisecondsSinceEpoch}";
-      await _firestore.collection('Attendance').doc(attendanceId).set({
+      String attendanceId = "${studentId}_${usedSubId}_${firestoreTimestamp.millisecondsSinceEpoch}";
+      Map<String, dynamic> attendanceData = {
         'studentId': studentId,
         'name': name,
-        'subId': subId,
-        'type': type,
         'status': status,
-        'timestamp': timestamp,
+        'timestamp': firestoreTimestamp,
+        if (subId != null) 'subId': subId,
+        if (subjectId != null) 'subjectId': subjectId,
+        if (type != null) 'type': type,
         if (teacherId != null) 'teacherId': teacherId,
-      });
+      };
+      
+      await _firestore.collection('Attendance').doc(attendanceId).set(attendanceData);
 
       // Send notifications to student and their parents
       await _sendAttendanceNotifications(
         studentId: studentId,
-        subId: subId,
+        subId: usedSubId,
         status: status,
-        timestamp: timestamp,
+        timestamp: firestoreTimestamp,
         teacherId: teacherId ?? user.uid,
       );
     } catch (e) {
@@ -133,13 +143,9 @@ class AttendanceService {
     required String teacherId,
   }) async {
     try {
-      // Get student's device token to send push notification
-      DocumentSnapshot studentDoc = await _firestore
-          .collection('Users')
-          .doc(studentId)
-          .get();
-          
-      String? deviceToken = studentDoc.get('fcmToken') as String?;
+      // Get student's device token to send push notification using UserService
+      Map<String, dynamic>? studentData = await _userService.getUserById(studentId);
+      String? deviceToken = studentData?['fcmToken'] as String?;
 
       // Create notification title and body based on status
       String title, body;
@@ -192,15 +198,15 @@ class AttendanceService {
         );
       }
 
-      // Find parents of this student and send notification
-      QuerySnapshot parentSnapshot = await _firestore
-          .collection('Users')
-          .where('role', isEqualTo: 'parent')
-          .get();
+      // Find parents of this student and send notification using UserService
+      QuerySnapshot? parentSnapshot;
+      await for (var snapshot in _userService.getParentsByChildId(studentId)) {
+        parentSnapshot = snapshot;
+        break; // Get the first snapshot
+      }
 
-      for (var parentDoc in parentSnapshot.docs) {
-        List<dynamic>? children = parentDoc.get('children') as List<dynamic>?;
-        if (children != null && children.contains(studentId)) {
+      if (parentSnapshot != null) {
+        for (var parentDoc in parentSnapshot.docs) {
           String parentTitle, parentBody;
           
           switch (status) {
@@ -322,23 +328,16 @@ class AttendanceService {
     DateTime? scanTime,
   }) async {
     try {
-      // Get student data
-      DocumentSnapshot studentDoc = await _firestore.collection('Users').doc(stdId).get();
+      // Get student data using UserService
+      Map<String, dynamic>? studentData = await _userService.getUserById(stdId);
       
-      if (!studentDoc.exists) {
+      if (studentData == null) {
         throw Exception('Student with ID $stdId not found');
       }
       
-      Map<String, dynamic> studentData = studentDoc.data() as Map<String, dynamic>;
-      
-      // Get subject data
-      DocumentSnapshot subjectDoc = await _firestore.collection('Subjects').doc(subId).get();
-      
-      if (!subjectDoc.exists) {
-        throw Exception('Subject with ID $subId not found');
-      }
-      
-      Map<String, dynamic> subjectData = subjectDoc.data() as Map<String, dynamic>;
+      // Get subject data - for now, we'll need to handle this separately
+      // For now, we'll just use the subId as subjectName until subject service is implemented
+      String subjectName = subId; // This would come from a subject service
       
       // Get current teacher data
       User? currentUser = _auth.currentUser;
@@ -370,7 +369,7 @@ class AttendanceService {
         'studentIdNumber': studentData['id'] ?? '',
         'status': status,
         'subjectId': subId,
-        'subjectName': subjectData['name'] ?? '',
+        'subjectName': subjectName,
         'teacherId': teacherId.isNotEmpty ? teacherId : currentUser.uid,
         'createdAt': FieldValue.serverTimestamp(),
         'scannedAt': Timestamp.fromDate(scanTimeToUse),
